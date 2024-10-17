@@ -1,0 +1,171 @@
+[
+  {
+    "halid": "00868006",
+    "lang": "fr",
+    "title": "Le développement de la théorie de l'équilibre général. Les apports d'Allais et de Hicks",
+    "domain": ["shs.eco"],
+    "timestamp": "2024/06/01 20:41:20",
+    "year": "2014",
+    "url": "https://shs.hal.science/halshs-00868006/file/Allais_et_Hicks_7.pdf",
+    "authors": [
+      {
+        "affiliations": ["10592"],
+        "name": "Alain Béraud",
+        "md5": "60badaa615d1ea9ae671d531933a281f",
+        "halauthorid": "1255419",
+        "orcid": "0009-0008-8822-6819"
+      }
+    ]
+  },
+  {
+    "halid": "00868023",
+    "lang": "en",
+    "title": "Interval-Based Projection Method for Under-Constrained Numerical Systems",
+    "domain": ["info.info-ai"],
+    "timestamp": "2024/06/01 20:41:20",
+    "year": "2012",
+    "url": "https://hal.science/hal-00868023/file/igj-constraints12.pdf",
+    "authors": [
+      {
+        "affiliations": ["6501"],
+        "name": "Daisuke Ishii",
+        "halauthorid": "0"
+      },
+      {
+        "affiliations": ["95421"],
+        "name": "Alexandre Goldsztejn",
+        "md5": "00590e0b5be9162e7cd587c4262698c3",
+        "halauthorid": "17099",
+        "orcid": "0000-0002-6561-5888",
+        "google scholar": "citations?hl=en&user=knvZjVwAAAAJ&pagesize=100",
+        "idref": "096006706"
+      },
+      {
+        "affiliations": ["95421"],
+        "name": "Christophe Jermann",
+        "md5": "684bc45305f453cd11eaebe855ab6609",
+        "halauthorid": "10950",
+        "orcid": "0000-0002-1383-3103",
+        "google scholar": "citations?sortby=pubdate&hl=fr&user=-wEIYj0AAAAJ&view_op=list_works",
+        "idref": "075970317"
+      }
+    ]
+  },
+  {
+    "halid": "00868132",
+    "lang": "en",
+    "title": "Acoustic characterization of porous materials with a rigid structure in the low frequency regime",
+    "domain": ["phys.meca.acou", "spi.acou"],
+    "timestamp": "2024/06/01 20:41:20",
+    "year": "2013",
+    "url": "https://hal.science/hal-00868132/file/sad.pdf",
+    "authors": [
+      {
+        "affiliations": ["92874"],
+        "name": "Mustapha Sadouki",
+        "md5": "ebd2162ad7b079966d47cace683d4fa1",
+        "halauthorid": "939463"
+      },
+      {
+        "affiliations": ["74354"],
+        "name": "Mohamed Fellah",
+        "halauthorid": "0"
+      },
+      {
+        "affiliations": ["388661"],
+        "name": "Zine El Abiddine Fellah",
+        "md5": "de634748241511d80713d5fb8ad0cb95",
+        "halauthorid": "738402",
+        "orcid": "0000-0002-9682-0876",
+        "idref": "20263759X"
+      },
+      {
+        "affiliations": ["388661"],
+        "name": "Erick Ogam",
+        "halauthorid": "0"
+      },
+      {
+        "affiliations": ["961"],
+        "name": "Claude Depollier",
+        "halauthorid": "0"
+      }
+    ]
+  },
+  {
+    "halid": "00868183",
+    "lang": "en",
+    "title": "Transient acoustic wave propagation in non-integer-dimensional rigid porous media.",
+    "domain": ["phys.meca.acou", "spi.acou"],
+    "timestamp": "2024/06/01 20:41:20",
+    "year": "2013",
+    "url": "https://hal.science/hal-00868183/file/Berb.pdf",
+    "authors": [
+      {
+        "affiliations": ["74354"],
+        "name": "Amine Berbiche",
+        "halauthorid": "0"
+      },
+      {
+        "affiliations": ["74354"],
+        "name": "Mohamed Fellah",
+        "halauthorid": "0"
+      },
+      {
+        "affiliations": ["388661"],
+        "name": "Zine El Abiddine Fellah",
+        "md5": "de634748241511d80713d5fb8ad0cb95",
+        "halauthorid": "738402",
+        "orcid": "0000-0002-9682-0876",
+        "idref": "20263759X"
+      },
+      {
+        "affiliations": ["92874"],
+        "name": "Mustapha Sadouki",
+        "md5": "ebd2162ad7b079966d47cace683d4fa1",
+        "halauthorid": "939463"
+      },
+      {
+        "affiliations": ["961"],
+        "name": "Claude Dépollier",
+        "halauthorid": "0"
+      }
+    ]
+  },
+  {
+    "halid": "00086833",
+    "lang": "en",
+    "title": "Soft tissue absorption tomography with correction for scattering aberrations.",
+    "domain": ["spi.meca.biom", "phys.meca.biom"],
+    "timestamp": "2024/06/01 20:41:20",
+    "year": "2005",
+    "url": "https://hal.science/hal-00086833/file/UI_franceschini_versionnet.pdf",
+    "authors": [
+      {
+        "affiliations": ["136844"],
+        "name": "Emilie Franceschini",
+        "md5": "2f62b01c3b628f3025a34c6c658c144b",
+        "halauthorid": "739291",
+        "orcid": "0000-0002-7067-9747",
+        "idref": "112666310"
+      },
+      {
+        "affiliations": ["136844"],
+        "name": "Marie-Christine Pauzin",
+        "halauthorid": "0"
+      },
+      {
+        "affiliations": ["136844"],
+        "name": "Serge Mensah",
+        "halauthorid": "0"
+      },
+      {
+        "affiliations": ["136844"],
+        "name": "Jean-Philippe Groby",
+        "md5": "83706f6878f75ee7d38ce18f9d5c310d",
+        "halauthorid": "177331",
+        "idref": "112509266",
+        "orcid": "0000-0002-9308-8261"
+      }
+    ]
+  }
+]
