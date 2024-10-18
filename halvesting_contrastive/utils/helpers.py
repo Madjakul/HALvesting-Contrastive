@@ -8,11 +8,11 @@ import os.path as osp
 import shutil
 from typing import List
 
-import pandas as pd
 import yaml
 from tqdm import tqdm
 
 WIDTH = 88
+
 
 def load_config_from_file(path: str):
     """Load a configuration file from a path.
@@ -208,20 +208,3 @@ def zip_compress(path: str):
         Path to the file to compress.
     """
     shutil.make_archive(path, "zip", path)
-
-
-def jsons_to_jsonls(input_paths: List[str], output_paths: List[str]):
-    """Convert a list of JSON files to JSONL files.
-
-    Parameters
-    ----------
-    input_paths : List[str]
-        List of paths to JSON files.
-    output_paths : List[str]
-        List of paths to JSONL files.
-    """
-    logging.info("Converting JSONs to JSONLs...")
-    for input_path, output_path in tqdm(list(zip(input_paths, output_paths))):
-        df = pd.read_json(input_path, orient="records")
-        df.to_json(output_path, orient="records", lines=True, force_ascii=False)
-

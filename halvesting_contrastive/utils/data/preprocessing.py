@@ -1,11 +1,18 @@
 # halvesting_contrastive/utils/data/preprocessing.py
 
-import logging
 from typing import Any, Dict, List
 
 
 class Preprocessing:
-    """Preprocessing class for data preprocessing."""
+    """Preprocessing class for data preprocessing.
+
+    Attributes
+    ----------
+    metadata: Dict[str, Any]
+        Documents' metadata.
+    domain_list: Tuple[str]
+        List of domains.
+    """
 
     metadata: Dict[str, Any] = {}
     domain_list = (
@@ -26,7 +33,13 @@ class Preprocessing:
 
     @classmethod
     def set_metadata(cls, metadata: Dict[str, Any]):
-        """Set the metadata."""
+        """Set the metadata.
+
+        Parameters
+        ----------
+        metadata: Dict[str, Any]
+            Documents' metadata.
+        """
         cls.metadata = metadata
 
     @classmethod
@@ -35,12 +48,13 @@ class Preprocessing:
 
         Parameters
         ----------
-        documents: Dict[str, List[str]]
+        documents: Dict[str, List[Any]]
             Dictionary containing the documents.
 
         Returns
         -------
-        documents:
+        Dict[str, List[int]]
+            Dictionary containing the size of the text in the documents.
         """
         size = []
 
@@ -51,7 +65,18 @@ class Preprocessing:
 
     @classmethod
     def batched_get_authors(cls, documents: Dict[str, List[Any]]):
-        """Get the authors in the documents."""
+        """Get the authors in the documents.
+
+        Parameters
+        ----------
+        documents: Dict[str, List[Any]]
+            Dictionary containing the documents.
+
+        Returns
+        -------
+        Dict[str, List[List[str]]]
+            Dictionary containing the authors in the documents and their affiliations.
+        """
         if not cls.metadata:
             raise ValueError("Metadata is not set.")
         authorids = []
@@ -71,7 +96,18 @@ class Preprocessing:
 
     @classmethod
     def batched_filter_domains(cls, documents: Dict[str, List[Any]]):
-        """Filter the documents by domain."""
+        """Filter the documents by domain.
+
+        Parameters
+        ----------
+        documents: Dict[str, List[Any]]
+            Dictionary containing the documents.
+
+        Returns
+        -------
+        Dict[str, List[List[str]]]
+            Dictionary containing the filtered domains.
+        """
         domains = []
         for local_domains in documents["domain"]:
             filtered_domains = []

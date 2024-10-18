@@ -38,13 +38,11 @@ def test_batched_filter_domains(dataset):
     )
     for document in documents:
         for domain in document["domain"]:
-            # TODO: Filter out the documents that are not in the domain list
             assert domain in Preprocessing.domain_list
 
 
 def test_batched_get_authors(dataset):
     documents = dataset["train"]
-    # TODO: Filter out non-English documents
     metadata = helpers.json_to_dict("./data/mock/mock_reponses.json", on="halid")
     Preprocessing.set_metadata(metadata)
     authors = documents.map(
