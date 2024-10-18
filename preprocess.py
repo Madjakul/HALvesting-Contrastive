@@ -75,6 +75,7 @@ if __name__ == "__main__":
     )
     ds = ds.add_column("authorids", authors["authorids"])
     ds = ds.add_column("affiliations", authors["affiliations"])
+    ds = ds.filter(lambda document: len(document["authorids"]) > 0)
 
     if args.push_to_hub:
         ds.push_to_hub(config["preprocessed_ds_checkpoint"], private=True)

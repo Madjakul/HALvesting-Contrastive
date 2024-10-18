@@ -82,6 +82,10 @@ class Preprocessing:
         authorids = []
         affiliations = []
         for halid in documents["halid"]:
+            if halid not in cls.metadata:
+                authorids.append([])
+                affiliations.append([])
+                continue
             local_metadata = cls.metadata[halid]
             local_authorids = []
             local_affiliations = []
