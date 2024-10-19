@@ -1,0 +1,7 @@
+datasets==3.0.1
+huggingface-hub==0.26.0
+numpy==2.1.2
+psutil==6.1.0
+PyYAML==6.0.2
+tqdm==4.66.5
+wandb==0.18.3
