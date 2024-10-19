@@ -52,8 +52,8 @@ if __name__ == "__main__":
         lambda batch: Preprocessing.batched_filter_domains(batch),
         batched=True,
         batch_size=config["batch_size"],
-        num_proc=args.num_proc if args.num_proc else NUM_PROC,
-        load_from_cache_file=config["load_from_cache_file"],
+        num_proc=args.num_proc if args.num_proc else NUM_PROC,  # type: ignore
+        load_from_cache_file=config["load_from_cache_file"],  # type: ignore
     )
     ds = ds.filter(lambda document: len(document["domain"]) > 0)
     logging.info("Getting the size of the documents.")
@@ -64,7 +64,7 @@ if __name__ == "__main__":
         num_proc=args.num_proc if args.num_proc else NUM_PROC,
         load_from_cache_file=config["load_from_cache_file"],
     )
-    ds = ds.add_column("size", size["size"])
+    ds = ds.add_column("size", size["size"])  # type: ignore
     logging.info("Getting the authors and affiliations.")
     authors = ds.map(
         lambda batch: Preprocessing.batched_get_authors(batch),
