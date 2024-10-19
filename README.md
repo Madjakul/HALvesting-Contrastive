@@ -40,7 +40,7 @@ You might need to modify the rights of the scripts to make them executable:
 chmod +x scripts/*
 ```
 
-Don't forget to also modify the configuration files in [`config/`](./config/) to suit your needs.
+Don't forget to also modify the configuration files in [`configs/`](./configs/) to suit your needs.
 
 ### Preprocessing
 
