@@ -34,7 +34,9 @@ class PassageSampler:
 
         References
         ----------
-        ..  [1] Li, Zehan, et al. Towards General Text Embeddings with Multi-Stage Contrastive Learning. arXiv:2308.03281, arXiv, 6 Aug. 2023. arXiv.org, https://doi.org/10.48550/arXiv.2308.03281.
+        ..  [1] Li, Zehan, et al. Towards General Text Embeddings with Multi-Stage
+            Contrastive Learning. arXiv:2308.03281, arXiv, 6 Aug. 2023. arXiv.org,
+            https://doi.org/10.48550/arXiv.2308.03281.
         """
         idx = torch.multinomial(self.probs, num_samples=batch_size, replacement=True)
         return idx

@@ -1,6 +1,7 @@
 # halvesting_contrastive/utils/helpers.py
 
 import gzip
+import hashlib
 import json
 import logging
 import os
@@ -100,6 +101,31 @@ def check_dir(path: str):
     return path
 
 
+def generate_checksum(dir_path: str, gz_file_path: str):
+    """Generates a checksum for the compressed file.
+
+    Parameters
+    ----------
+    dir_path : str
+        Path to the base directory.
+    gz_file_path : str
+        Path to the GZIP file.
+    """
+    checksum_file_path = os.path.join(dir_path, "checksum.sha256")
+
+    hasher = hashlib.sha256()
+    with open(gz_file_path, "rb") as f:
+        while True:
+            chunk = f.read(4096)
+            if not chunk:
+                break
+            hasher.update(chunk)
+
+    checksum = hasher.hexdigest()
+    with open(checksum_file_path, "a") as f:
+        f.write(f"{checksum}\t{os.path.basename(gz_file_path)}\n")
+
+
 def read_json(path: str):
     """Reads a JSON file at path.
 
@@ -186,7 +212,7 @@ def jsons_to_dict(paths: List[str], on: str):
     return data
 
 
-def gzip_compress(path: str):
+def gz_compress(path: str):
     """Compress a file to a gzip file.
 
     Parameters
