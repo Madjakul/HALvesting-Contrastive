@@ -7,13 +7,15 @@ import datasets
 import torch
 from nltk.tokenize import sent_tokenize
 
+from halvesting_contrastive.core.formatter import Formatter
+
 
 class PassageSampler:
     """Class used to sample documents and grammatically correct passages from
     documents."""
 
     def __init__(self, dataset: datasets.Dataset, alpha: float = 0.5):
-        self.sampling_methods = [self.sample_paragraph, self.sample_sentences]
+        self.sampling_methods = [self.sample_paragraph, self.sample_sentence]
         self.dataset = dataset
         sizes = torch.FloatTensor(dataset["size"], alpha)
         self.probs = self._compute_multinomial_probs(sizes, alpha)
@@ -58,9 +60,9 @@ class PassageSampler:
         paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
         paragraph_idx = torch.randint(len(paragraphs), (1,)).item()
         paragraph = paragraphs[paragraph_idx]
-        return paragraph
+        return True, paragraph
 
-    def sample_sentences(self, document: Dict[str, Any]):
+    def sample_sentence(self, document: Dict[str, Any]):
         """Sample a sentence from a document.
 
         Parameters
@@ -76,7 +78,7 @@ class PassageSampler:
         sentences = sent_tokenize(document["text"])
         sentence_idx = torch.randint(len(sentences), (1,)).item()
         sentence = sentences[sentence_idx]
-        return sentence
+        return False, sentence
 
     def sample_pairs(self):
         query_idx, passage_idx = self.sample_documents(2)
@@ -85,10 +87,14 @@ class PassageSampler:
         query = self.dataset[query_idx]
         passage = self.dataset[passage_idx]
 
-        query_text = self.sampling_methods[random.randint(0, 1)](query)
-        passage_text = self.sampling_methods[random.randint(0, 1)](passage)
+        query_is_paragraph, query_text = self.sampling_methods[random.randint(0, 1)](
+            query
+        )
+        passage_is_paragraph, passage_text = self.sampling_methods[
+            random.randint(0, 1)
+        ](passage)
 
-        # TODO: Format pairs and write them into a jsonl file
+        # TODO: Call the formatter and test it with streamed data
 
     @staticmethod
     def _compute_multinomial_probs(sizes: torch.FloatTensor, alpha: float):
