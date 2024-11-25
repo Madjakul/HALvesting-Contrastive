@@ -38,11 +38,15 @@ def load_config_from_file(path: str):
         "yaml": load_config_from_yaml,
         "yml": load_config_from_yaml,
     }
-    assert os.path.isfile(path)
+    try:
+        assert os.path.isfile(path)
+    except AssertionError:
+        raise FileNotFoundError(f"No file at {path}.")
     _, file_extension = osp.splitext(path)
     file_extension = file_extension[1:]
     if file_extension not in load_config_map:
         raise ValueError(f"File extension {file_extension} not supported.")
+    logging.info(f"Loading configuration from {path}.")
     config = load_config_map[file_extension](path)
     return config
 

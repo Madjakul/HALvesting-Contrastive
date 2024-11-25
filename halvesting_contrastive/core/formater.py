@@ -1,4 +1,4 @@
-# halvesting_contrastive/core/formatter.py
+# halvesting_contrastive/core/formater.py
 
 import json
 import os.path as osp
@@ -9,7 +9,7 @@ from halvesting_contrastive.utils import helpers
 
 
 # TODO: document  the class
-class Formatter:
+class Formater:
     """Class used to format and write the query, passage, and output to a
     file."""
 
@@ -33,7 +33,7 @@ class Formatter:
     def __enter__(self):
         return self
 
-    def __exit__(self):
+    def __exit__(self, *args, **kwargs):
         self.flush()
 
     def format(

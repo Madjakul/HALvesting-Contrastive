@@ -1,24 +1,80 @@
 # halvesting_contrastive/core/passage_sampler.py
 
+import multiprocessing as mp
 import random
 from typing import Any, Dict
 
 import datasets
 import torch
 from nltk.tokenize import sent_tokenize
+from tqdm import tqdm
 
-from halvesting_contrastive.core.formatter import Formatter
+from halvesting_contrastive.core.formater import Formater
+from halvesting_contrastive.utils import helpers
 
 
 class PassageSampler:
     """Class used to sample documents and grammatically correct passages from
     documents."""
 
-    def __init__(self, dataset: datasets.Dataset, alpha: float = 0.5):
+    def __init__(
+        self,
+        dataset: datasets.Dataset,
+        output_dir: str,
+        num_proc: int,
+        num_pairs: int,
+        alpha: float = 0.5,
+    ):
         self.sampling_methods = [self.sample_paragraph, self.sample_sentence]
         self.dataset = dataset
-        sizes = torch.FloatTensor(dataset["size"], alpha)
+        try:
+            assert num_proc > 1
+        except AssertionError:
+            raise ValueError("num_proc must be greater than 1.")
+        self.num_proc = num_proc
+        self.num_pairs = num_pairs
+        self.output_dir = helpers.check_dir(output_dir)
+        sizes = torch.FloatTensor(dataset["size"])
         self.probs = self._compute_multinomial_probs(sizes, alpha)
+
+    def __call__(self):
+        queue = mp.Queue()
+
+        def formatter_worker(queue):
+            """Process results from the queue and save them using the
+            Formatter."""
+            with Formater(self.output_dir, 1000, 100000) as formatter:
+                while True:
+                    result = queue.get()
+                    if result is None:
+                        break
+                    formatter.save(
+                        query=result["query"],
+                        query_is_paragraph=result["query_is_paragraph"],
+                        query_text=result["query_text"],
+                        passage=result["passage"],
+                        passage_is_paragraph=result["passage_is_paragraph"],
+                        passage_text=result["passage_text"],
+                    )
+
+        # Start the formatter process
+        formatter_process = mp.Process(target=formatter_worker, args=(queue,))
+        formatter_process.start()
+
+        # Launch workers to sample pairs
+        with mp.Pool(self.num_proc - 1) as pool:
+            for _ in tqdm(range(self.num_pairs)):
+                pool.apply_async(
+                    self.sample_pairs,
+                    args=(),
+                    callback=lambda result: queue.put(result),
+                )
+            pool.close()
+            pool.join()
+
+        # Signal the formatter process to terminate
+        queue.put(None)
+        formatter_process.join()
 
     def sample_documents(self, batch_size: int):
         """Sample a batch of document indices given the multinomial
@@ -94,7 +150,14 @@ class PassageSampler:
             random.randint(0, 1)
         ](passage)
 
-        # TODO: Call the formatter and test it with streamed data
+        return {
+            "query": query,
+            "query_is_paragraph": query_is_paragraph,
+            "query_text": query_text,
+            "passage": passage,
+            "passage_is_paragraph": passage_is_paragraph,
+            "passage_text": passage_text,
+        }
 
     @staticmethod
     def _compute_multinomial_probs(sizes: torch.FloatTensor, alpha: float):

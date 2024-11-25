@@ -1,4 +1,4 @@
-# halvesting_contrastive/utils/argparser/preprocess_argparse.py
+# halvesting_contrastive/utils/argparsers/preprocess_argparse.py
 
 import argparse
 
@@ -25,11 +25,6 @@ class PreprocessArgparse:
             help="Path to the config file.",
         )
         parser.add_argument(
-            "--do_convert_responses",
-            action="store_true",
-            help="Convert responses to metadata.",
-        )
-        parser.add_argument(
             "--responses_dir",
             type=str,
             default="./data/responses/",
@@ -46,11 +41,6 @@ class PreprocessArgparse:
             type=int,
             default=None,
             help="Number of processes to use. Default is the number of CPUs.",
-        )
-        parser.add_argument(
-            "--push_to_hub",
-            action="store_true",
-            help="Push the dataset to the Hub.",
         )
         args, _ = parser.parse_known_args()
         return args

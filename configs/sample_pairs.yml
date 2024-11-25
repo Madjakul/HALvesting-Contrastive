@@ -1,0 +1,14 @@
+main:
+  do_compress: False
+  do_checksum: False
+  do_push_to_hub: False
+
+ds:
+  checkpoint: Madjakul/HALvest-Contrastive-Raw
+  streaming: False
+  # cache_dir: /cache
+
+sampler:
+  output_dir: ./data
+  num_pairs: 100
+  alpha: 0.5
