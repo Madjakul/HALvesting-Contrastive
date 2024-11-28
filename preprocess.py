@@ -1,5 +1,8 @@
 # preprocess.py
-
+# TODO: remove text with no affiliations
+# TODO: remove text with no authors
+# TODO: remove text with no domain or unk domains
+# TODO: perform perplexity-based filtering using the RAW HALvest dataset
 import json
 import logging
 import os

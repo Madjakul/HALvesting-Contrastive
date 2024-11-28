@@ -36,8 +36,15 @@ if __name__ == "__main__":
 
     sampler = PassageSampler(
         dataset=ds,  # type: ignore
-        output_dir=config["sampler"]["output_dir"],
+        output_dir=args.output_dir,
         num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,
         num_pairs=config["sampler"]["num_pairs"],
         alpha=config["sampler"]["alpha"],
     )
+    sampler()
+
+    if config["main"]["do_checksum"]:
+        pass
+
+    if config["main"]["do_push_to_hub"]:
+        ds.push_to_hub(config["main"]["checkpoint"], private=True)

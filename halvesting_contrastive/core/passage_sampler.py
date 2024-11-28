@@ -1,7 +1,9 @@
 # halvesting_contrastive/core/passage_sampler.py
 
+import logging
 import multiprocessing as mp
 import random
+import re
 from typing import Any, Dict
 
 import datasets
@@ -32,6 +34,7 @@ class PassageSampler:
         except AssertionError:
             raise ValueError("num_proc must be greater than 1.")
         self.num_proc = num_proc
+        logging.info(f"Using {self.num_proc} processes.")
         self.num_pairs = num_pairs
         self.output_dir = helpers.check_dir(output_dir)
         sizes = torch.FloatTensor(dataset["size"])
@@ -100,6 +103,7 @@ class PassageSampler:
         return idx
 
     def sample_paragraph(self, document: Dict[str, Any]):
+        # TODO: remove this function as it useless
         """Sample a paragraph from a document.
 
         Parameters
@@ -113,7 +117,7 @@ class PassageSampler:
             A paragraph from the document.
         """
         text = document["text"]
-        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
+        paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
         paragraph_idx = torch.randint(len(paragraphs), (1,)).item()
         paragraph = paragraphs[paragraph_idx]
         return True, paragraph
@@ -163,4 +167,5 @@ class PassageSampler:
     def _compute_multinomial_probs(sizes: torch.FloatTensor, alpha: float):
         regularizer = torch.sum(sizes**alpha)
         probs = sizes**alpha / regularizer
+        print(probs[:100])
         return probs

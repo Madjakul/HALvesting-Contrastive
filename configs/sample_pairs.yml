@@ -9,6 +9,5 @@ ds:
   # cache_dir: /cache
 
 sampler:
-  output_dir: ./data
   num_pairs: 100
   alpha: 0.5

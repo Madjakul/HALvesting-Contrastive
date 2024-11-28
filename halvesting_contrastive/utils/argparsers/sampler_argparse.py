@@ -25,5 +25,17 @@ class SamplerArgparse:
             required=True,
             help="Path to the config file.",
         )
+        parser.add_argument(
+            "--num_proc",
+            type=int,
+            default=None,
+            help="Number of processes to use. Default is the number of CPUs.",
+        )
+        parser.add_argument(
+            "--output_dir",
+            type=str,
+            default="./data",
+            help="Path to the output directory.",
+        )
         args, _ = parser.parse_known_args()
         return args
