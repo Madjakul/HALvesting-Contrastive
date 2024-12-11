@@ -2,8 +2,8 @@
 
 import logging
 import multiprocessing as mp
+import os
 import random
-import re
 from typing import Any, Dict
 
 import datasets
@@ -27,7 +27,6 @@ class PassageSampler:
         num_pairs: int,
         alpha: float = 0.5,
     ):
-        self.sampling_methods = [self.sample_paragraph, self.sample_sentence]
         self.dataset = dataset
         try:
             assert num_proc > 1
@@ -53,10 +52,8 @@ class PassageSampler:
                         break
                     formatter.save(
                         query=result["query"],
-                        query_is_paragraph=result["query_is_paragraph"],
                         query_text=result["query_text"],
                         passage=result["passage"],
-                        passage_is_paragraph=result["passage_is_paragraph"],
                         passage_text=result["passage_text"],
                     )
 
@@ -102,26 +99,6 @@ class PassageSampler:
         idx = torch.multinomial(self.probs, num_samples=batch_size, replacement=True)
         return idx
 
-    def sample_paragraph(self, document: Dict[str, Any]):
-        # TODO: remove this function as it useless
-        """Sample a paragraph from a document.
-
-        Parameters
-        ----------
-        document : Dict[str, Any]
-            A document from the dataset.
-
-        Returns
-        -------
-        paragraph : str
-            A paragraph from the document.
-        """
-        text = document["text"]
-        paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
-        paragraph_idx = torch.randint(len(paragraphs), (1,)).item()
-        paragraph = paragraphs[paragraph_idx]
-        return True, paragraph
-
     def sample_sentence(self, document: Dict[str, Any]):
         """Sample a sentence from a document.
 
@@ -138,28 +115,27 @@ class PassageSampler:
         sentences = sent_tokenize(document["text"])
         sentence_idx = torch.randint(len(sentences), (1,)).item()
         sentence = sentences[sentence_idx]
-        return False, sentence
+        return sentence
 
     def sample_pairs(self):
+        # Set a unique seed for this process based on its PID
+        process_id = os.getpid()
+        random.seed(process_id)
+        torch.manual_seed(process_id)
+
         query_idx, passage_idx = self.sample_documents(2)
         query_idx = query_idx.item()
         passage_idx = passage_idx.item()
         query = self.dataset[query_idx]
         passage = self.dataset[passage_idx]
 
-        query_is_paragraph, query_text = self.sampling_methods[random.randint(0, 1)](
-            query
-        )
-        passage_is_paragraph, passage_text = self.sampling_methods[
-            random.randint(0, 1)
-        ](passage)
+        query_text = self.sample_sentence(query)
+        passage_text = self.sample_sentence(passage)
 
         return {
             "query": query,
-            "query_is_paragraph": query_is_paragraph,
             "query_text": query_text,
             "passage": passage,
-            "passage_is_paragraph": passage_is_paragraph,
             "passage_text": passage_text,
         }
 
@@ -167,5 +143,5 @@ class PassageSampler:
     def _compute_multinomial_probs(sizes: torch.FloatTensor, alpha: float):
         regularizer = torch.sum(sizes**alpha)
         probs = sizes**alpha / regularizer
-        print(probs[:100])
+        print(max(probs))
         return probs

@@ -39,10 +39,8 @@ class Formater:
     def format(
         self,
         query: Dict[str, Any],
-        query_is_paragraph: bool,
         query_text: str,
         passage: Dict[str, Any],
-        passage_is_paragraph: bool,
         passage_text: str,
     ):
         query_halid = query["halid"]
@@ -63,14 +61,12 @@ class Formater:
         output = {
             "query_halid": query_halid,
             "query_text": query_text,
-            "query_is_paragraph": query_is_paragraph,
             "query_year": query_year,
             "query_authors": query_authors,
             "query_affiliations": query_affiliations,
             "query_domains": query_domains,
             "passage_halid": passage_halid,
             "passage_text": passage_text,
-            "passage_is_paragraph": passage_is_paragraph,
             "passage_year": passage_year,
             "passage_authors": passage_authors,
             "passage_affiliations": passage_affiliations,
@@ -84,19 +80,15 @@ class Formater:
     def save(
         self,
         query: Dict[str, Any],
-        query_is_paragraph: bool,
         query_text: str,
         passage: Dict[str, Any],
-        passage_is_paragraph: bool,
         passage_text: str,
     ):
         self.batch.append(
             self.format(
                 query,
-                query_is_paragraph,
                 query_text,
                 passage,
-                passage_is_paragraph,
                 passage_text,
             )
         )
