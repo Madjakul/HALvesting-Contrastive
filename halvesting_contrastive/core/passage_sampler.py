@@ -16,6 +16,8 @@ from halvesting_contrastive.utils import helpers
 
 
 class PassageSampler:
+    # TODO: test the class on edge cases
+    # TODO: document the class
     """Class used to sample documents and grammatically correct passages from
     documents."""
 
@@ -112,6 +114,7 @@ class PassageSampler:
         sentence : str
             A sentence from the document
         """
+        # TODO: avoid having sentence ending by Fig. or Table.
         sentences = sent_tokenize(document["text"])
         sentence_idx = torch.randint(len(sentences), (1,)).item()
         sentence = sentences[sentence_idx]

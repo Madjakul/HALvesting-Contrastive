@@ -1,8 +1,5 @@
 # preprocess.py
-# TODO: remove text with no affiliations
-# TODO: remove text with no authors
-# TODO: remove text with no domain or unk domains
-# TODO: perform perplexity-based filtering using the RAW HALvest dataset
+
 import json
 import logging
 import os
@@ -78,7 +75,17 @@ if __name__ == "__main__":
     )
     ds = ds.add_column("authorids", authors["authorids"])
     ds = ds.add_column("affiliations", authors["affiliations"])
+
+    logging.info("FIltering out documents with no authors...")
     ds = ds.filter(lambda document: len(document["authorids"]) > 0)
+    logging.info("Filtering out documents with no affiliations...")
+    ds = ds.filter(lambda document: len(document["affiliations"]) > 0)
+    logging.info("Filtering out documents with unknown domains...")
+    ds = ds.filter(
+        lambda document: set(document["domain"]).issubset(
+            set(Preprocessing.domain_list)
+        )
+    )
 
     if config["main"]["do_push_to_hub"]:
         ds.push_to_hub(config["main"]["checkpoint"], private=True)

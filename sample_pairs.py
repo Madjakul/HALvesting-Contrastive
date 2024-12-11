@@ -44,7 +44,9 @@ if __name__ == "__main__":
     sampler()
 
     if config["main"]["do_checksum"]:
+        # TODO: implement checksum
         pass
 
     if config["main"]["do_push_to_hub"]:
+        # TODO: implement push_to_hub
         ds.push_to_hub(config["main"]["checkpoint"], private=True)
