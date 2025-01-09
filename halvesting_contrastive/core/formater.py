@@ -53,6 +53,7 @@ class Formater:
         passage_authors = passage["authorids"]
         passage_domains = passage["domain"]
         passage_affiliations = passage["affiliations"]
+        year_label = 1 if query_year == passage_year else 0
         domain_label = 1 if set(query_domains) & set(passage_domains) else 0
         author_label = 1 if set(query_authors) & set(passage_authors) else 0
         affiliation_label = (
@@ -71,6 +72,7 @@ class Formater:
             "passage_authors": passage_authors,
             "passage_affiliations": passage_affiliations,
             "passage_domains": passage_domains,
+            "year_label": year_label,
             "domain_label": domain_label,
             "affiliation_label": affiliation_label,
             "author_label": author_label,

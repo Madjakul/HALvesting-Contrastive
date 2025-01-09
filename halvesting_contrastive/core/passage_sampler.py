@@ -114,10 +114,20 @@ class PassageSampler:
         sentence : str
             A sentence from the document
         """
-        # TODO: avoid having sentence ending by Fig. or Table.
         sentences = sent_tokenize(document["text"])
         sentence_idx = torch.randint(len(sentences), (1,)).item()
         sentence = sentences[sentence_idx]
+        # At least 3 words in the sentence avoiding "Fig." or "Table."
+        if len(sentence.split()) < 3:
+            if sentence_idx == len(sentences) - 1:
+                sentence = " ".join(sentences[-2:])
+            else:
+                sentence = " ".join(sentences[sentence_idx : sentence_idx + 2])
+
+        # If the sentence is still too short, sample again
+        if len(sentence.split()) < 3:
+            sentence = self.sample_sentence(document)
+
         return sentence
 
     def sample_pairs(self):
@@ -146,5 +156,4 @@ class PassageSampler:
     def _compute_multinomial_probs(sizes: torch.FloatTensor, alpha: float):
         regularizer = torch.sum(sizes**alpha)
         probs = sizes**alpha / regularizer
-        print(max(probs))
         return probs
