@@ -11,3 +11,4 @@ ds:
 sampler:
   num_pairs: 100
   alpha: 0.5
+  num_sentences: 2

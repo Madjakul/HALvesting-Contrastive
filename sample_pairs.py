@@ -41,7 +41,7 @@ if __name__ == "__main__":
         num_pairs=config["sampler"]["num_pairs"],
         alpha=config["sampler"]["alpha"],
     )
-    sampler()
+    sampler(config["sampler"]["num_sentences"])
 
     if config["main"]["do_checksum"]:
         # TODO: implement checksum

@@ -14,6 +14,8 @@ from tqdm import tqdm
 from halvesting_contrastive.core.formater import Formater
 from halvesting_contrastive.utils import helpers
 
+_worker_seeded: bool = False
+
 
 class PassageSampler:
     # TODO: test the class on edge cases
@@ -41,7 +43,7 @@ class PassageSampler:
         sizes = torch.FloatTensor(dataset["size"])
         self.probs = self._compute_multinomial_probs(sizes, alpha)
 
-    def __call__(self):
+    def __call__(self, num_sentences: int):
         queue = mp.Queue()
 
         def formatter_worker(queue):
@@ -68,7 +70,7 @@ class PassageSampler:
             for _ in tqdm(range(self.num_pairs)):
                 pool.apply_async(
                     self.sample_pairs,
-                    args=(),
+                    args=(num_sentences,),
                     callback=lambda result: queue.put(result),
                 )
             pool.close()
@@ -101,7 +103,7 @@ class PassageSampler:
         idx = torch.multinomial(self.probs, num_samples=batch_size, replacement=True)
         return idx
 
-    def sample_sentence(self, document: Dict[str, Any]):
+    def sample_sentence(self, document: Dict[str, Any], num_sentences: int = 1):
         """Sample a sentence from a document.
 
         Parameters
@@ -116,25 +118,20 @@ class PassageSampler:
         """
         sentences = sent_tokenize(document["text"])
         sentence_idx = torch.randint(len(sentences), (1,)).item()
-        sentence = sentences[sentence_idx]
-        # At least 3 words in the sentence avoiding "Fig." or "Table."
-        if len(sentence.split()) < 3:
-            if sentence_idx == len(sentences) - 1:
-                sentence = " ".join(sentences[-2:])
-            else:
-                sentence = " ".join(sentences[sentence_idx : sentence_idx + 2])
-
-        # If the sentence is still too short, sample again
-        if len(sentence.split()) < 3:
-            sentence = self.sample_sentence(document)
+        while sentence_idx > len(sentences) - num_sentences:
+            sentence_idx = torch.randint(len(sentences), (1,)).item()
+        sentence = " ".join(sentences[sentence_idx : sentence_idx + num_sentences])
 
         return sentence
 
-    def sample_pairs(self):
+    def sample_pairs(self, num_sentences: int):
         # Set a unique seed for this process based on its PID
-        process_id = os.getpid()
-        random.seed(process_id)
-        torch.manual_seed(process_id)
+        global _worker_seeded
+        if not _worker_seeded:
+            process_id = os.getpid()
+            random.seed(process_id)
+            torch.manual_seed(process_id)
+            _worker_seeded = True
 
         query_idx, passage_idx = self.sample_documents(2)
         query_idx = query_idx.item()
@@ -142,8 +139,8 @@ class PassageSampler:
         query = self.dataset[query_idx]
         passage = self.dataset[passage_idx]
 
-        query_text = self.sample_sentence(query)
-        passage_text = self.sample_sentence(passage)
+        query_text = self.sample_sentence(query, num_sentences)
+        passage_text = self.sample_sentence(passage, num_sentences)
 
         return {
             "query": query,

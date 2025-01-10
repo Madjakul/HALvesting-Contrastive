@@ -1,7 +1,7 @@
 main:
   do_convert_responses: False
   checkpoint: Madjakul/HALvest-Contrastive-Raw
-  do_push_to_hub: False
+  do_push_to_hub: True
 
 ds:
   checkpoint: Madjakul/HALvest-Geometric

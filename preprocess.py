@@ -25,7 +25,7 @@ if __name__ == "__main__":
     logging.info(f"{('=' * helpers.WIDTH)}")
 
     # Load metadata
-    if args.do_convert_responses:
+    if config["main"]["do_convert_responses"]:
         logging.info(f"Converting responses in {args.responses_dir} to metadata.")
         response_files = [
             osp.join(args.responses_dir, f)
