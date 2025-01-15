@@ -4,7 +4,7 @@ import logging
 import os
 import random
 from collections import defaultdict
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import datasets
 import torch
@@ -38,6 +38,7 @@ class ContrastiveSampler:
     def sample_batched(
         cls,
         batch: List[datasets.Dataset],
+        ids: List[int],
         n_pairs: int,
         n_sentences: int,
         ds: datasets.Dataset,
@@ -62,4 +63,32 @@ class ContrastiveSampler:
         author_labels = []
 
         for idx, doc in batch:
-            pass
+            local_idx = ids[idx]
+            local_auths = set(doc["authorids"])
+
+            same_auth_ids = set()
+            for auth in local_auths:
+                same_auth_ids.update(cls._auth_to_idx[auth])
+
+            same_auth_ids.discard(local_idx)
+            diff_auth_ids = set(all_ids) - same_auth_ids - {local_idx}
+
+            # Sample positive pairs
+            for _ in range(n_pairs):
+                query_text = cls.sample_sentences(doc, n_sentences)
+                passage_idx = (
+                    random.choice(list(same_auth_ids)) if same_auth_ids else local_idx
+                )
+                passage = ds[passage_idx]
+                passage_text = cls.sample_sentences(passage, n_sentences)
+
+    @staticmethod
+    def sample_sentences(document: Dict[str, Any], n_sentences: int):
+        """Sample n sentences from a document."""
+        sentences = sent_tokenize(document["text"])
+        sentence_idx = torch.randint(len(sentences), (1,)).item()
+        while sentence_idx > len(sentences) - n_sentences:
+            sentence_idx = torch.randint(len(sentences), (1,)).item()
+        sentence = " ".join(sentences[sentence_idx : sentence_idx + n_sentences])
+
+        return sentence
