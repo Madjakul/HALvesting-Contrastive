@@ -10,6 +10,7 @@ import torch
 from nltk.tokenize import sent_tokenize
 
 
+# TODO: Document the class and the functions.
 class ContrastiveSampler:
     """Class used to sample documents and passages for contrastive learning."""
 

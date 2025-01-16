@@ -6,7 +6,7 @@ import datasets
 import nltk
 import psutil
 
-from halvesting_contrastive.core import PassageSampler
+from halvesting_contrastive.core import ContrastiveSampler, ICTSampler
 from halvesting_contrastive.utils import helpers, logging_config
 from halvesting_contrastive.utils.argparsers import SamplerArgparse
 
@@ -34,14 +34,26 @@ if __name__ == "__main__":
         cache_dir=config["ds"]["cache_dir"] if "cache_dir" in config["ds"] else None,
     )
 
-    sampler = PassageSampler(
-        dataset=ds,  # type: ignore
-        output_dir=args.output_dir,
+    # TODO: make this sampling method option
+    ContrastiveSampler.init_cache(ds)
+
+    augmented_ds = ds.map(
+        ContrastiveSampler.sample_batched,
+        batched=True,
+        batch_size=config["sampler"]["batch_size"],
+        with_indices=True,
         num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,
-        num_pairs=config["sampler"]["num_pairs"],
-        alpha=config["sampler"]["alpha"],
+        remove_columns=ds.column_names,
+        fn_kwargs={
+            "soft_positives": config["sampler"]["soft_positives"],
+            "n_pairs": config["sampler"]["n_pairs"],
+            "n_sentences": config["sampler"]["n_sentences"],
+            "ds": ds,
+            "all_ids": range(len(ds)),
+        },
     )
-    sampler(config["sampler"]["num_sentences"])
+
+    # TODO: Implement the ICTSampler option
 
     if config["main"]["do_checksum"]:
         # TODO: implement checksum
