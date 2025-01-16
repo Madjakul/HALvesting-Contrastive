@@ -121,7 +121,7 @@ class ContrastiveSampler:
                 )
 
             # Sample negative pairs
-            for _ in range(n_pairs):
+            for _ in range(n_pairs * 2):
                 query_text = cls.sample_sentences(batch["text"][idx], n_sentences)  # type: ignore
                 passage_idx = random.choice(list(diff_auth_ids))
                 passage = ds[passage_idx]
