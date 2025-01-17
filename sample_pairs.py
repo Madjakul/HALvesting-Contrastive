@@ -34,31 +34,28 @@ if __name__ == "__main__":
         cache_dir=config["ds"]["cache_dir"] if "cache_dir" in config["ds"] else None,
     )
 
-    # TODO: make this sampling method option
-    ContrastiveSampler.init_cache(ds)
+    if config["sampler"]["do_sampling"]:
+        ContrastiveSampler.init_cache(ds)
 
-    augmented_ds = ds.map(
-        ContrastiveSampler.sample_batched,
-        batched=True,
-        batch_size=config["sampler"]["batch_size"],
-        with_indices=True,
-        num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,
-        remove_columns=ds.column_names,
-        fn_kwargs={
-            "soft_positives": config["sampler"]["soft_positives"],
-            "n_pairs": config["sampler"]["n_pairs"],
-            "n_sentences": config["sampler"]["n_sentences"],
-            "ds": ds,
-            "all_ids": range(len(ds)),
-        },
-    )
+        augmented_ds = ds.map(
+            ContrastiveSampler.sample_batched,
+            batched=True,
+            batch_size=config["sampler"]["batch_size"],
+            with_indices=True,
+            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,
+            remove_columns=ds.column_names,
+            fn_kwargs={
+                "soft_positives": config["sampler"]["soft_positives"],
+                "n_pairs": config["sampler"]["n_pairs"],
+                "n_sentences": config["sampler"]["n_sentences"],
+                "ds": ds,
+                "all_ids": range(len(ds)),
+            },
+        )
+
+        config_name = "base-soft" if config["sampler"]["soft_positives"] else "base"
+
+        if config["main"]["do_push_to_hub"]:
+            ds.push_to_hub(config["sampler"]["checkpoint"], config_name=config_name)
 
     # TODO: Implement the ICTSampler option
-
-    if config["main"]["do_checksum"]:
-        # TODO: implement checksum
-        pass
-
-    if config["main"]["do_push_to_hub"]:
-        # TODO: implement push_to_hub
-        ds.push_to_hub(config["main"]["checkpoint"], private=True)
