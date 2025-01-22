@@ -5,6 +5,7 @@ Mining sentence and document pairs from HAL for contrastive learning.
 ## Features
 
 - [`preprocess.py`](preprocess.py): Preprocesses the raw data from HAL alongside responses from the API.
+- [`sample_pairs.py`](sample_pairs.py): Samples contrastive pairs from the preprocessed data.
 
 ## Requirements
 
@@ -66,9 +67,30 @@ options:
   --push_to_hub         Push the dataset to the Hub.
 ```
 
+### Sampling
+
+Sample contrastive pairs from the preprocessed data. The pairs can be independent sentences or contiguous ones in order to perform inverse cloze tasks.
+
+```
+usage: sample_pairs.py [-h] --config_path CONFIG_PATH [--num_proc NUM_PROC]
+                       [--output_dir OUTPUT_DIR] [--cache_dir CACHE_DIR]
+
+Argument parser used to sample sentences, paragraphs or inverse cloze pairs.
+
+options:
+  -h, --help            show this help message and exit
+  --config_path CONFIG_PATH
+                        Path to the config file.
+  --num_proc NUM_PROC   Number of processes to use. Default is the number of CPUs.
+  --output_dir OUTPUT_DIR
+                        Path to the output directory.
+  --cache_dir CACHE_DIR
+                        Path to the cache directory.
+```
+
 ## Citation
 
-To cite HALvesting/HALvest:
+To cite this work or the subsequent dataset, please use the following BibTeX entry:
 
 ```bib
 @misc{kulumba2024harvestingtextualstructureddata,
