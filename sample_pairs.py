@@ -37,6 +37,7 @@ if __name__ == "__main__":
     if config["sampler"]["do_sample"]:
         ContrastiveSampler.init_cache(ds)  # type: ignore
 
+        logging.info("Sampling contrastive pairs...")
         augmented_ds = ds.map(
             ContrastiveSampler.sample_batched,
             batched=True,
@@ -57,12 +58,14 @@ if __name__ == "__main__":
         config_name = "base-soft" if config["sampler"]["soft_positives"] else "base"
 
         if config["sampler"]["do_push_to_hub"]:
+            logging.info("Pushing to the hub...")
             augmented_ds.push_to_hub(  # type: ignore
                 config["ds"]["push_checkpoint"],
                 config_name=f"{config_name}-{config['sampler']['n_sentences']}",
             )
 
     if config["ict_sampler"]["do_sample"]:
+        logging.info("Sampling ICT pairs...")
         augmented_ds = ds.map(
             ICTSampler.sample_batched,
             batched=True,
@@ -77,6 +80,7 @@ if __name__ == "__main__":
         )
 
         if config["ict_sampler"]["do_push_to_hub"]:
+            logging.info("Pushing to the hub...")
             augmented_ds.push_to_hub(  # type: ignore
                 config["ds"]["push_checkpoint"],
                 config_name=f"ict-{config['ict_sampler']['n_sentences']}",

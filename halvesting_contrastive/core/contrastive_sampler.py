@@ -10,15 +10,24 @@ import torch
 from nltk.tokenize import sent_tokenize
 
 
-# TODO: Document the class and the functions.
 class ContrastiveSampler:
-    """Class used to sample documents and keys for contrastive learning."""
+    """Class used to sample documents and keys for contrastive learning. The
+    sampling is done in a batched manner to speed up the process. The sampling
+    is done in the following way: for each document, sample `n` positive pairs
+    and `2 * n` negative pairs. The positive pairs are documents written by the
+    same author(s) and the negative pairs are documents written by different
+    authors. The negative pairs are sampled from the whole dataset.
+
+    Attributes
+    ----------
+    _auth_to_idx: Dict[str, List[int]]
+        Dictionary mapping authors to their indices in the dataset.
+    """
 
     _auth_to_idx: Dict[str, List[int]] = None  # type: ignore
 
     @classmethod
     def _build_auth_to_idx_map(cls, ds: datasets.Dataset):
-        """Build a dictionary: author -> [list of indices] where that author appears in the dataset."""
         auth_to_idx = defaultdict(list)
         for idx, auths in enumerate(ds["authorids"]):
             for auth in auths:
@@ -27,7 +36,18 @@ class ContrastiveSampler:
 
     @classmethod
     def init_cache(cls, ds: datasets.Dataset):
-        """Initialize the cached author-to-indices map once."""
+        """Initialize the cached author-to-indices map once.
+
+        Parameters
+        ----------
+        ds: datasets.Dataset
+            The whole dataset in read-only mode.
+
+        Returns
+        -------
+        bool
+            Always True after completion.
+        """
         if cls._auth_to_idx is None:
             logging.info("Building author-to-indices map...")
             cls._auth_to_idx = cls._build_auth_to_idx_map(ds)
@@ -45,8 +65,32 @@ class ContrastiveSampler:
         ds: datasets.Dataset,
         all_ids: List[int],
     ):
-        """Batched function to create n positive pairs and n negative pairs per
-        documents."""
+        """Batched function to create `n` positive pairs and `2 * n` negative
+        pairs per documents for a total of `3 * n * len(ds)` pairs.
+
+        Parameters
+        ----------
+        batch: List[Dict[str, Any]]
+            Batch of documents.
+        ids: List[int]
+            List of indices of the documents.
+        soft_positives: bool
+            Whether to sample soft positives or not. Soft positives are documents
+            written by one of the co-authors and nnot just the first author.
+        n_pairs: int
+            Number of positive pairs to sample per document.
+        n_sentences: int
+            Number of sentences to sample per document.
+        ds: datasets.Dataset
+            The whole dataset in read-only mode.
+        all_ids: List[int]
+            List of all indices in the dataset.
+
+        Returns
+        -------
+        Dict[str, List[Any]]
+            Dictionary containing the query and key pairs.
+        """
         query_halids = []
         query_texts = []
         query_years = []
@@ -63,7 +107,7 @@ class ContrastiveSampler:
         affiliation_labels = []
         author_labels = []
 
-        for idx in range(len(batch["text"])):
+        for idx in range(len(batch["text"])):  # type: ignore
             local_idx = ids[idx]
 
             same_auth_ids = set()
@@ -173,7 +217,20 @@ class ContrastiveSampler:
 
     @staticmethod
     def sample_sentences(text: str, n_sentences: int):
-        """Sample n sentences from a document."""
+        """Sample `n` sentences from a document.
+
+        Parameters
+        ----------
+        text: str
+            Document text.
+        n_sentences: int
+            Number of sentences to sample.
+
+        Returns
+        -------
+        sentence: str
+            Sampled sentence(s).
+        """
         sentences = sent_tokenize(text)
         sentence_idx = torch.randint(len(sentences), (1,)).item()
         while sentence_idx > len(sentences) - n_sentences:
