@@ -27,7 +27,7 @@ class ICTSampler:
         affiliation_labels = []
         author_labels = []
 
-        for idx in range(len(batch)):
+        for idx in range(len(batch["text"])):
             for _ in range(n_pairs):
                 query_text, key_text = cls.sample_sentences(batch["text"][idx], n_sentences)  # type: ignore
                 query_halids.append(batch["halid"][idx])  # type: ignore

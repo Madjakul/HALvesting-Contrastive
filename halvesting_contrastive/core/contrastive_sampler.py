@@ -12,7 +12,7 @@ from nltk.tokenize import sent_tokenize
 
 # TODO: Document the class and the functions.
 class ContrastiveSampler:
-    """Class used to sample documents and passages for contrastive learning."""
+    """Class used to sample documents and keys for contrastive learning."""
 
     _auth_to_idx: Dict[str, List[int]] = None  # type: ignore
 
@@ -53,17 +53,17 @@ class ContrastiveSampler:
         query_domains = []
         query_affiliations = []
         query_authors = []
-        passage_halids = []
-        passage_texts = []
-        passage_years = []
-        passage_domains = []
-        passage_affiliations = []
-        passage_authors = []
+        key_halids = []
+        key_texts = []
+        key_years = []
+        key_domains = []
+        key_affiliations = []
+        key_authors = []
         domain_labels = []
         affiliation_labels = []
         author_labels = []
 
-        for idx in range(len(batch)):
+        for idx in range(len(batch["text"])):
             local_idx = ids[idx]
 
             same_auth_ids = set()
@@ -90,11 +90,11 @@ class ContrastiveSampler:
             # Sample positive pairs
             for _ in range(n_pairs):
                 query_text = cls.sample_sentences(batch["text"][idx], n_sentences)  # type: ignore
-                passage_idx = (
+                key_idx = (
                     random.choice(list(same_auth_ids)) if same_auth_ids else local_idx
                 )
-                passage = ds[passage_idx]
-                passage_text = cls.sample_sentences(passage["text"], n_sentences)
+                key = ds[key_idx]
+                key_text = cls.sample_sentences(key["text"], n_sentences)
 
                 # Append positive pair
                 query_halids.append(batch["halid"][idx])  # type: ignore
@@ -103,30 +103,30 @@ class ContrastiveSampler:
                 query_domains.append(batch["domain"][idx])  # type: ignore
                 query_affiliations.append(batch["affiliations"][idx])  # type: ignore
                 query_authors.append(batch["authorids"][idx])  # type: ignore
-                passage_halids.append(passage["halid"])
-                passage_texts.append(passage_text)
-                passage_years.append(passage["year"])
-                passage_domains.append(passage["domain"])
-                passage_affiliations.append(passage["affiliations"])
-                passage_authors.append(passage["authorids"])
+                key_halids.append(key["halid"])
+                key_texts.append(key_text)
+                key_years.append(key["year"])
+                key_domains.append(key["domain"])
+                key_affiliations.append(key["affiliations"])
+                key_authors.append(key["authorids"])
                 domain_labels.append(
-                    1 if set(batch["domain"][idx]) & set(passage["domain"]) else 0  # type: ignore
+                    1 if set(batch["domain"][idx]) & set(key["domain"]) else 0  # type: ignore
                 )
                 affiliation_labels.append(
                     1
-                    if set(batch["affiliations"][idx]) & set(passage["affiliations"])  # type: ignore
+                    if set(batch["affiliations"][idx]) & set(key["affiliations"])  # type: ignore
                     else 0
                 )
                 author_labels.append(
-                    1 if set(batch["authorids"][idx]) & set(passage["authorids"]) else 0  # type: ignore
+                    1 if set(batch["authorids"][idx]) & set(key["authorids"]) else 0  # type: ignore
                 )
 
             # Sample negative pairs
             for _ in range(n_pairs * 2):
                 query_text = cls.sample_sentences(batch["text"][idx], n_sentences)  # type: ignore
-                passage_idx = random.choice(list(diff_auth_ids))
-                passage = ds[passage_idx]
-                passage_text = cls.sample_sentences(passage["text"], n_sentences)
+                key_idx = random.choice(list(diff_auth_ids))
+                key = ds[key_idx]
+                key_text = cls.sample_sentences(key["text"], n_sentences)
 
                 # Append negative pair
                 query_halids.append(batch["halid"][idx])  # type: ignore
@@ -135,25 +135,24 @@ class ContrastiveSampler:
                 query_domains.append(batch["domain"][idx])  # type: ignore
                 query_affiliations.append(batch["affiliations"][idx])  # type: ignore
                 query_authors.append(batch["authorids"][idx])  # type: ignore
-                passage_halids.append(passage["halid"])
-                passage_texts.append(passage_text)
-                passage_years.append(passage["year"])
-                passage_domains.append(passage["domain"])
-                passage_affiliations.append(passage["affiliations"])
-                passage_authors.append(passage["authorids"])
+                key_halids.append(key["halid"])
+                key_texts.append(key_text)
+                key_years.append(key["year"])
+                key_domains.append(key["domain"])
+                key_affiliations.append(key["affiliations"])
+                key_authors.append(key["authorids"])
                 domain_labels.append(
-                    1 if set(batch["domain"][idx]) & set(passage["domain"]) else 0  # type: ignore
+                    1 if set(batch["domain"][idx]) & set(key["domain"]) else 0  # type: ignore
                 )
                 affiliation_labels.append(
                     1
-                    if set(batch["affiliations"][idx]) & set(passage["affiliations"])  # type: ignore
+                    if set(batch["affiliations"][idx]) & set(key["affiliations"])  # type: ignore
                     else 0
                 )
                 author_labels.append(
-                    1 if set(batch["authorids"][idx]) & set(passage["authorids"]) else 0  # type: ignore
+                    1 if set(batch["authorids"][idx]) & set(key["authorids"]) else 0  # type: ignore
                 )
 
-        print(f"Processed {len(batch)} documents, generated {len(query_halids)} pairs")
         return {
             "query_halid": query_halids,
             "query_text": query_texts,
@@ -161,12 +160,12 @@ class ContrastiveSampler:
             "query_authors": query_authors,
             "query_affiliations": query_affiliations,
             "query_domains": query_domains,
-            "passage_halid": passage_halids,
-            "passage_text": passage_texts,
-            "passage_year": passage_years,
-            "passage_authors": passage_authors,
-            "passage_affiliations": passage_affiliations,
-            "passage_domains": passage_domains,
+            "key_halid": key_halids,
+            "key_text": key_texts,
+            "key_year": key_years,
+            "key_authors": key_authors,
+            "key_affiliations": key_affiliations,
+            "key_domains": key_domains,
             "domain_label": domain_labels,
             "affiliation_label": affiliation_labels,
             "author_label": author_labels,

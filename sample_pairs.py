@@ -29,57 +29,55 @@ if __name__ == "__main__":
 
     ds = datasets.load_dataset(
         config["ds"]["checkpoint"],
-        split="train",
+        split="train[:1000]",
         streaming=config["ds"]["streaming"],
         cache_dir=args.cache_dir,
     )
 
     if config["sampler"]["do_sample"]:
-        ContrastiveSampler.init_cache(ds)
+        ContrastiveSampler.init_cache(ds)  # type: ignore
 
         augmented_ds = ds.map(
             ContrastiveSampler.sample_batched,
             batched=True,
             batch_size=config["sampler"]["batch_size"],
             with_indices=True,
-            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,
-            remove_columns=ds.column_names,
+            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,  # type: ignore
+            remove_columns=ds.column_names,  # type: ignore
             fn_kwargs={
                 "soft_positives": config["sampler"]["soft_positives"],
                 "n_pairs": config["sampler"]["n_pairs"],
                 "n_sentences": config["sampler"]["n_sentences"],
                 "ds": ds,
-                "all_ids": range(len(ds)),
+                "all_ids": range(len(ds)),  # type: ignore
             },
-            load_from_cache_file=config["sampler"]["load_from_cache_file"],
+            load_from_cache_file=config["sampler"]["load_from_cache_file"],  # type: ignore
         )
 
         config_name = "base-soft" if config["sampler"]["soft_positives"] else "base"
 
-        if config["main"]["do_push_to_hub"]:
-            ds.push_to_hub(
-                config["sampler"]["checkpoint"],
+        if config["sampler"]["do_push_to_hub"]:
+            augmented_ds.push_to_hub(  # type: ignore
+                config["ds"]["push_checkpoint"],
                 config_name=f"{config_name}-{config['sampler']['n_sentences']}",
             )
 
     if config["ict_sampler"]["do_sample"]:
-        ICTSampler.init_cache(ds)
-
         augmented_ds = ds.map(
             ICTSampler.sample_batched,
             batched=True,
             batch_size=config["ict_sampler"]["batch_size"],
-            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,
-            remove_columns=ds.column_names,
+            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,  # type: ignore
+            remove_columns=ds.column_names,  # type: ignore
             fn_kwargs={
                 "n_pairs": config["ict_sampler"]["n_pairs"],
                 "n_sentences": config["ict_sampler"]["n_sentences"],
             },
-            load_from_cache_file=config["ict_sampler"]["load_from_cache_file"],
+            load_from_cache_file=config["ict_sampler"]["load_from_cache_file"],  # type: ignore
         )
 
-        if config["main"]["do_push_to_hub"]:
-            ds.push_to_hub(
-                config["ict_sampler"]["checkpoint"],
+        if config["ict_sampler"]["do_push_to_hub"]:
+            augmented_ds.push_to_hub(  # type: ignore
+                config["ds"]["push_checkpoint"],
                 config_name=f"ict-{config['ict_sampler']['n_sentences']}",
             )
