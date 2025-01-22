@@ -25,7 +25,7 @@ if __name__ == "__main__":
     logging.info(f"{('=' * helpers.WIDTH)}")
 
     # Load metadata
-    if args.do_convert_responses:
+    if config["main"]["do_convert_responses"]:
         logging.info(f"Converting responses in {args.responses_dir} to metadata.")
         response_files = [
             osp.join(args.responses_dir, f)
@@ -40,9 +40,9 @@ if __name__ == "__main__":
         with open(args.metadata_path, "r") as f:
             metadata = json.load(f)
 
-    logging.info(f"Loading dataset from {config['ds_checkpoint']}.")
+    logging.info(f"Loading dataset from {config['ds']['checkpoint']}.")
     ds = datasets.load_dataset(
-        config["ds_checkpoint"], config["ds_checkpoint_config"], split="train"
+        config["ds"]["checkpoint"], config["ds"]["config"], split="train"
     )
 
     # Preprocessing dataset
@@ -51,31 +51,43 @@ if __name__ == "__main__":
     ds = ds.map(
         lambda batch: Preprocessing.batched_filter_domains(batch),
         batched=True,
-        batch_size=config["batch_size"],
+        batch_size=config["map"]["batch_size"],
         num_proc=args.num_proc if args.num_proc else NUM_PROC,  # type: ignore
-        load_from_cache_file=config["load_from_cache_file"],  # type: ignore
+        load_from_cache_file=config["map"]["load_from_cache_file"],  # type: ignore
     )
     ds = ds.filter(lambda document: len(document["domain"]) > 0)
     logging.info("Getting the size of the documents.")
     size = ds.map(
         lambda batch: Preprocessing.batched_getsizeof(batch),
         batched=True,
-        batch_size=config["batch_size"],
+        batch_size=config["map"]["batch_size"],
         num_proc=args.num_proc if args.num_proc else NUM_PROC,
-        load_from_cache_file=config["load_from_cache_file"],
+        load_from_cache_file=config["map"]["load_from_cache_file"],
     )
     ds = ds.add_column("size", size["size"])  # type: ignore
     logging.info("Getting the authors and affiliations.")
     authors = ds.map(
         lambda batch: Preprocessing.batched_get_authors(batch),
         batched=True,
-        batch_size=config["batch_size"],
+        batch_size=config["map"]["batch_size"],
         num_proc=args.num_proc if args.num_proc else NUM_PROC,
-        load_from_cache_file=config["load_from_cache_file"],
+        load_from_cache_file=config["map"]["load_from_cache_file"],
     )
     ds = ds.add_column("authorids", authors["authorids"])
     ds = ds.add_column("affiliations", authors["affiliations"])
-    ds = ds.filter(lambda document: len(document["authorids"]) > 0)
 
-    if args.push_to_hub:
-        ds.push_to_hub(config["preprocessed_ds_checkpoint"], private=True)
+    logging.info("Filtering out documents with no authors...")
+    ds = ds.filter(lambda document: len(document["authorids"]) > 0)
+    logging.info("Filtering out documents with no affiliations...")
+    ds = ds.filter(lambda document: len(document["affiliations"]) > 0)
+    logging.info("Filtering out documents with unknown domains...")
+    ds = ds.filter(
+        lambda document: set(document["domain"]).issubset(
+            set(Preprocessing.domain_list)
+        )
+    )
+    logging.info("Filtering documents with no references...")
+    ds = ds.filter(lambda document: "[START_REF]" in document["text"])
+
+    if config["main"]["do_push_to_hub"]:
+        ds.push_to_hub(config["main"]["checkpoint"], private=True)

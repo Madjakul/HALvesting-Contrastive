@@ -1,6 +1,7 @@
 # halvesting_contrastive/utils/helpers.py
 
 import gzip
+import hashlib
 import json
 import logging
 import os
@@ -37,11 +38,15 @@ def load_config_from_file(path: str):
         "yaml": load_config_from_yaml,
         "yml": load_config_from_yaml,
     }
-    assert os.path.isfile(path)
+    try:
+        assert os.path.isfile(path)
+    except AssertionError:
+        raise FileNotFoundError(f"No file at {path}.")
     _, file_extension = osp.splitext(path)
     file_extension = file_extension[1:]
     if file_extension not in load_config_map:
         raise ValueError(f"File extension {file_extension} not supported.")
+    logging.info(f"Loading configuration from {path}.")
     config = load_config_map[file_extension](path)
     return config
 
@@ -98,6 +103,31 @@ def check_dir(path: str):
     logging.warning(f"No folder at {path}: creating folders at path.")
     os.makedirs(path)
     return path
+
+
+def generate_checksum(dir_path: str, gz_file_path: str):
+    """Generates a checksum for the compressed file.
+
+    Parameters
+    ----------
+    dir_path : str
+        Path to the base directory.
+    gz_file_path : str
+        Path to the GZIP file.
+    """
+    checksum_file_path = os.path.join(dir_path, "checksum.sha256")
+
+    hasher = hashlib.sha256()
+    with open(gz_file_path, "rb") as f:
+        while True:
+            chunk = f.read(4096)
+            if not chunk:
+                break
+            hasher.update(chunk)
+
+    checksum = hasher.hexdigest()
+    with open(checksum_file_path, "a") as f:
+        f.write(f"{checksum}\t{os.path.basename(gz_file_path)}\n")
 
 
 def read_json(path: str):
@@ -186,7 +216,7 @@ def jsons_to_dict(paths: List[str], on: str):
     return data
 
 
-def gzip_compress(path: str):
+def gz_compress(path: str):
     """Compress a file to a gzip file.
 
     Parameters

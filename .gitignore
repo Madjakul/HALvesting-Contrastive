@@ -165,3 +165,4 @@ data/responses/
 logs/
 tmp/
 data/metadata.json
+.Trash*/

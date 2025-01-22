@@ -1,5 +1,12 @@
-ds_checkpoint: Madjakul/HALvest-Geometric
-ds_checkpoint_config: en
-batch_size: 1000
-load_from_cache_file: False
-preprocessed_ds_checkpoint: Madjakul/HALvest-Contrastive-Raw
+main:
+  do_convert_responses: False
+  checkpoint: Madjakul/HALvest-Contrastive-Raw
+  do_push_to_hub: True
+
+ds:
+  checkpoint: Madjakul/HALvest-Geometric
+  config: en
+
+map:
+  batch_size: 1000
+  load_from_cache_file: False
