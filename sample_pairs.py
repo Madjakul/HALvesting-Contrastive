@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     ds = datasets.load_dataset(
         config["ds"]["checkpoint"],
-        split="train[:1000]",
+        split="train",
         streaming=config["ds"]["streaming"],
         cache_dir=args.cache_dir,
     )

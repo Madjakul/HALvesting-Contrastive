@@ -6,13 +6,13 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 import datasets
-import torch
 from nltk.tokenize import sent_tokenize
 
 
 class ContrastiveSampler:
     """Class used to sample documents and keys for contrastive learning. The
-    sampling is done in a batched manner to speed up the process. The sampling
+    sampling is done in a batched manner to speed up the process. The sampling.
+
     is done in the following way: for each document, sample `n` positive pairs
     and `2 * n` negative pairs. The positive pairs are documents written by the
     same author(s) and the negative pairs are documents written by different
@@ -232,9 +232,9 @@ class ContrastiveSampler:
             Sampled sentence(s).
         """
         sentences = sent_tokenize(text)
-        sentence_idx = torch.randint(len(sentences), (1,)).item()
+        sentence_idx = random.randint(0, len(sentences))
         while sentence_idx > len(sentences) - n_sentences:
-            sentence_idx = torch.randint(len(sentences), (1,)).item()
+            sentence_idx = random.randint(0, len(sentences))
         sentence = " ".join(sentences[sentence_idx : sentence_idx + n_sentences])
 
         return sentence
