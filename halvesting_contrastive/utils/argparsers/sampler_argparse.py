@@ -37,5 +37,11 @@ class SamplerArgparse:
             default="./data",
             help="Path to the output directory.",
         )
+        parser.add_argument(
+            "--cache_dir",
+            type=str,
+            default=None,
+            help="Path to the cache directory.",
+        )
         args, _ = parser.parse_known_args()
         return args

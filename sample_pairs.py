@@ -31,10 +31,10 @@ if __name__ == "__main__":
         config["ds"]["checkpoint"],
         split="train",
         streaming=config["ds"]["streaming"],
-        cache_dir=config["ds"]["cache_dir"] if "cache_dir" in config["ds"] else None,
+        cache_dir=args.cache_dir,
     )
 
-    if config["sampler"]["do_sampling"]:
+    if config["sampler"]["do_sample"]:
         ContrastiveSampler.init_cache(ds)
 
         augmented_ds = ds.map(
@@ -51,11 +51,35 @@ if __name__ == "__main__":
                 "ds": ds,
                 "all_ids": range(len(ds)),
             },
+            load_from_cache_file=config["sampler"]["load_from_cache_file"],
         )
 
         config_name = "base-soft" if config["sampler"]["soft_positives"] else "base"
 
         if config["main"]["do_push_to_hub"]:
-            ds.push_to_hub(config["sampler"]["checkpoint"], config_name=config_name)
+            ds.push_to_hub(
+                config["sampler"]["checkpoint"],
+                config_name=f"{config_name}-{config['sampler']['n_sentences']}",
+            )
 
-    # TODO: Implement the ICTSampler option
+    if config["ict_sampler"]["do_sample"]:
+        ICTSampler.init_cache(ds)
+
+        augmented_ds = ds.map(
+            ICTSampler.sample_batched,
+            batched=True,
+            batch_size=config["ict_sampler"]["batch_size"],
+            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,
+            remove_columns=ds.column_names,
+            fn_kwargs={
+                "n_pairs": config["ict_sampler"]["n_pairs"],
+                "n_sentences": config["ict_sampler"]["n_sentences"],
+            },
+            load_from_cache_file=config["ict_sampler"]["load_from_cache_file"],
+        )
+
+        if config["main"]["do_push_to_hub"]:
+            ds.push_to_hub(
+                config["ict_sampler"]["checkpoint"],
+                config_name=f"ict-{config['ict_sampler']['n_sentences']}",
+            )

@@ -4,7 +4,6 @@ import logging
 import random
 from typing import Any, Dict, List
 
-import datasets
 from nltk.tokenize import sent_tokenize
 
 
@@ -63,10 +62,10 @@ class ICTSampler:
     def sample_sentences(text: str, n_sentences: int):
         """Sample n sentences from a text."""
         sentences = sent_tokenize(text)
-        query_idx = random.randint(n_sentences, len(sentences) - n_sentences - 1)
+        query_idx = random.randint(n_sentences, len(sentences) - 2 * n_sentences)
         query = " ".join(sentences[query_idx : query_idx + n_sentences])
         key = " ".join(
             sentences[query_idx - n_sentences : query_idx]
-            + sentences[query_idx + 1 : query_idx + n_sentences]
+            + sentences[query_idx + n_sentences : query_idx + 2 * n_sentences]
         )
         return query, key
