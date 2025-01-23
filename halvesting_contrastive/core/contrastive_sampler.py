@@ -14,7 +14,7 @@ class ContrastiveSampler:
     sampling is done in a batched manner to speed up the process. The sampling.
 
     is done in the following way: for each document, sample `n` positive pairs
-    and `2 * n` negative pairs. The positive pairs are documents written by the
+    and `n` negative pairs. The positive pairs are documents written by the
     same author(s) and the negative pairs are documents written by different
     authors. The negative pairs are sampled from the whole dataset.
 
@@ -65,8 +65,8 @@ class ContrastiveSampler:
         ds: datasets.Dataset,
         all_ids: List[int],
     ):
-        """Batched function to create `n` positive pairs and `2 * n` negative
-        pairs per documents for a total of `3 * n * len(ds)` pairs.
+        """Batched function to create `n` positive pairs and `n` negative pairs
+        per documents for a total of `2 * n * len(ds)` pairs.
 
         Parameters
         ----------
@@ -232,6 +232,9 @@ class ContrastiveSampler:
             Sampled sentence(s).
         """
         sentences = sent_tokenize(text)
+        min_requirements = 2 * n_sentences
+        if len(sentences) < min_requirements:
+            return text
         sentence_idx = random.randint(0, len(sentences))
         while sentence_idx > len(sentences) - n_sentences:
             sentence_idx = random.randint(0, len(sentences))
