@@ -5,7 +5,7 @@ ds:
 
 sampler:
   do_sample: True
-  batch_size: 1000
+  batch_size: 100
   soft_positives: True
   n_pairs: 2
   n_sentences: 2
@@ -14,8 +14,8 @@ sampler:
 
 ict_sampler:
   do_sample: True
-  batch_size: 1000
-  n_pairs: 6
+  batch_size: 100
+  n_pairs: 4
   n_sentences: 2
   load_from_cache_file: True
   do_push_to_hub: True

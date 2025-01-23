@@ -1,6 +1,5 @@
 # halvesting_contrastive/core/ict_sampler.py
 
-import logging
 import random
 from typing import Any, Dict, List
 
@@ -85,6 +84,9 @@ class ICTSampler:
             Key text.
         """
         sentences = sent_tokenize(text)
+        min_required_sentences = 3 * n_sentences
+        if len(sentences) < min_required_sentences:
+            return "", ""
         query_idx = random.randint(n_sentences, len(sentences) - 2 * n_sentences)
         query = " ".join(sentences[query_idx : query_idx + n_sentences])
         key = " ".join(
