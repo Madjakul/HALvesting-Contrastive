@@ -20,13 +20,13 @@ class Decoder:
     @torch.no_grad()
     def compute_entropy(self, tokenized_inputs: Dict[str, Any]):
         """Compute the average entropy of a sequence."""
-        logits = self.model(**tokenized_inputs).logits[:, :-1, :]
+        logits = self.model(**tokenized_inputs).logits
         probs = F.softmax(logits, dim=-1)
         entropy = -torch.sum(probs * torch.log(probs + 1e-10), dim=-1) / torch.log(
             torch.tensor(self.model.config.vocab_size).to(self.device)
         )
 
-        attention_mask = tokenized_inputs["attention_mask"][:, :-1]
+        attention_mask = tokenized_inputs["attention_mask"]
         seq_len = torch.sum(attention_mask, dim=1)
         mean_entropy = torch.sum(entropy * attention_mask, dim=1) / seq_len
         return mean_entropy.cpu().numpy()
