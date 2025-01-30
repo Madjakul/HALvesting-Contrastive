@@ -1,98 +1,82 @@
 # halvesting_geometric/utils/data/postprocessing.py
 
-import logging
+import math
+import re
 from collections import Counter
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-import numpy as np
-import torch
-from nltk.tokenize import word_tokenize
-from nltk.util import ngrams
-from transformers import AutoTokenizer, PreTrainedTokenizer
-
-from halvesting_contrastive.modules import Decoder
+import nltk
+from langdetect import detect
 
 
 class Postprocessing:
-    """Postprocessing class for the data."""
-
-    device: str
-    tokenizer: PreTrainedTokenizer
-    max_len: int
+    """Class used to postprocess the data after sampling."""
 
     @classmethod
-    def set_device(cls, device: str):
-        """Set the device for the postprocessing."""
-        assert device in ("cpu", "cuda")
-        cls.device = device
+    def run(cls, example: Dict[str, Any]):
+        """Postprocess the data after sampling.
+
+        Parameters
+        ----------
+        example: Dict[str, Any]
+            The example to postprocess.
+
+        Returns
+        -------
+        bool
+            If the example is valid or not.
+        """
+        q, k = example["query_text"], example["key_text"]
+
+        # 1) Enough words
+        if not (cls.has_enough_words(q) and cls.has_enough_words(k)):
+            return False
+
+        # 2) English check
+        # if not (cls.is_english(q) and cls.is_english(k)):
+        #     return False
+
+        # 3) Repetitiveness
+        if cls.is_repetitive(q) or cls.is_repetitive(k):
+            return False
+
+        # 4) Too many symbols
+        if cls.has_too_many_symbols(q) or cls.has_too_many_symbols(k):
+            return False
+
+        if "\t" in q or "\t" in k:
+            return False
+
         return True
 
-    @classmethod
-    def set_tokenizer(cls, tokenizer_checkpoint: str, max_len: int):
-        """Set the tokenizer for the postprocessing."""
-        cls.tokenizer = AutoTokenizer.from_pretrained(tokenizer_checkpoint)
-        cls.max_len = max_len
-        return True
-
-    @classmethod
-    def compute_unique_ngrams(cls, sentences: List[str], n: int = 3):
-        """Compute unique n-gram ratio."""
-
-        def repetition_ratio(sentence: str):
-            words = word_tokenize(sentence)
-            if len(words) < n:
-                return 0.0
-            ngram_list = list(ngrams(words, n))
-            counts = Counter(ngram_list)
-            repeated_ngrams = sum(1 for count in counts.values() if count > 1)
-            return repeated_ngrams / len(ngram_list) if len(ngram_list) > 0 else 0.0
-
-        return np.array([repetition_ratio(sentence) for sentence in sentences])
-
-    @classmethod
-    def tokenize(cls, batch: List[str]):
-        """Tokenize."""
+    @staticmethod
+    def is_english(text: str):
         try:
-            return cls.tokenizer(
-                batch,
-                padding="max_length",
-                truncation=True,
-                max_length=cls.max_len,
-                return_tensors="pt",
-            ).to(cls.device)
-        except AttributeError:
-            logging.error("Please set the tokenizer and the device first.")
-            return None
+            return detect(text) == "en"
+        except:
+            return False
 
-    @classmethod
-    def postprocess_batch(cls, batch: Dict[str, List[Any]]):
-        """Postprocess the batch."""
-        query_repetitions = cls.compute_unique_ngrams(batch["query_text"])
-        key_repetitions = cls.compute_unique_ngrams(batch["key_text"])
+    @staticmethod
+    def has_enough_words(text: str):
+        return len(nltk.word_tokenize(text)) > 6
 
-        mask = (
-            (np.array([len(query.split()) for query in batch["query_text"]]) > 2)
-            & (np.array([len(key.split()) for key in batch["key_text"]]) > 2)
-            & (query_repetitions < 0.5)
-            & (key_repetitions < 0.5)
+    @staticmethod
+    def has_too_many_symbols(text: str):
+        symbols = re.findall(r"[^A-zÀ-ú]", text)
+        return len(symbols) / len(text) > 0.25
+
+    @staticmethod
+    def is_repetitive(text: str):
+        normalized_words = [word.lower() for word in nltk.word_tokenize(text)]
+        counter = Counter(normalized_words)
+
+        # calculate the entropy of the unigram distribution
+        total = sum(counter.values())
+        entropy = sum(
+            map(
+                lambda x: -x / total * math.log(x / total) if x > 0 else 0.0,
+                counter.values(),
+            )
         )
 
-        return {k: [v[i] for i in range(len(v)) if mask[i]] for k, v in batch.items()}
-
-    @classmethod
-    def entropy_filter_batch(cls, batch: Dict[str, List[Any]], decoder: Decoder):
-        """Filter the batch based on entropy."""
-        query_tokens = cls.tokenize(batch["query_text"])
-        key_tokens = cls.tokenize(batch["key_text"])
-
-        query_entropies = decoder.compute_entropy(query_tokens)
-        key_entropies = decoder.compute_entropy(key_tokens)
-
-        mask = (
-            (torch.sum(query_tokens["attention_mask"], dim=1) > 4)
-            & (torch.sum(key_tokens["attention_mask"], dim=1) > 4)
-            & (query_entropies < 0.9)
-            & (key_entropies < 0.9)
-        )
-
-        return {k: [v[i] for i in range(len(v)) if mask[i]] for k, v in batch.items()}
+        return entropy < 1.5
