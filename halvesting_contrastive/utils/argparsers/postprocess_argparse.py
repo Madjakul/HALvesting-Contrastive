@@ -1,11 +1,10 @@
-# halvesting_contrastive/utils/argparsers/sampler_argparse.py
+# halvesting_contrastive/utils/argparsers/postprocess_argparse.py
 
 import argparse
 
 
-class SamplerArgparse:
-    """Argument parser used to sample sentences, paragraphs or inverse cloze
-    pairs."""
+class PostprocessArgparse:
+    """Argument parser used to postprocess HALvest Contrastive."""
 
     @classmethod
     def parse_known_args(cls):
@@ -17,7 +16,7 @@ class SamplerArgparse:
             Parsed arguments.
         """
         parser = argparse.ArgumentParser(
-            description="Argument parser used to sample sentences, paragraphs or inverse cloze pairs."
+            description="Argument parser used to clean out sentence pairs."
         )
         parser.add_argument(
             "--config_path",
@@ -30,12 +29,6 @@ class SamplerArgparse:
             type=int,
             default=None,
             help="Number of processes to use. Default is the number of CPUs.",
-        )
-        parser.add_argument(
-            "--cache_dir",
-            type=str,
-            default=None,
-            help="Path to the cache directory.",
         )
         args, _ = parser.parse_known_args()
         return args

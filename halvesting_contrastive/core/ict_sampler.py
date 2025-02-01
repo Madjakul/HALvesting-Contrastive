@@ -20,6 +20,25 @@ class ICTSampler:
     def sample_batched(
         cls, batch: List[Dict[str, Any]], n_pairs: int, n_sentences: int = 1
     ):
+        """Sample contiguous sentences from the same document in batch.
+
+        Parameters
+        ----------
+        batch: List[Dict[str, Any]]
+            Batch of documents.
+        n_pairs: int
+            Number of positive pairs to sample.
+        n_sentences: int
+            Number of contiguous sentences to sample for the query. This
+            number is multiplied by 2 to get they keys on the left and
+            right of the query.
+
+        Returns
+        -------
+        Dict[str, List[Any]]
+            Dictionary containing the query and key texts, years, domains,
+            affiliations, and authors.
+        """
         query_halids = []
         query_texts = []
         query_years = []

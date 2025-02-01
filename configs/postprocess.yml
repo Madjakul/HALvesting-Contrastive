@@ -1,0 +1,10 @@
+main:
+  checkpoint: Madjakul/HALvest-Contrastive
+  do_push_to_hub: True
+
+ds:
+  checkpoint: Madjakul/HALvest-Contrastive-R
+  config: base-soft-8
+
+filter:
+  load_from_cache_file: False
