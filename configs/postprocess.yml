@@ -4,7 +4,7 @@ main:
 
 ds:
   checkpoint: Madjakul/HALvest-Contrastive-R
-  config: base-2
+  config: base-soft-8
 
 filter:
   load_from_cache_file: False
