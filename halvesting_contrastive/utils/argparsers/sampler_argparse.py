@@ -32,12 +32,6 @@ class SamplerArgparse:
             help="Number of processes to use. Default is the number of CPUs.",
         )
         parser.add_argument(
-            "--output_dir",
-            type=str,
-            default="./data",
-            help="Path to the output directory.",
-        )
-        parser.add_argument(
             "--cache_dir",
             type=str,
             default=None,

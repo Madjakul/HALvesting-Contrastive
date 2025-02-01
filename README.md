@@ -6,6 +6,7 @@ Mining sentence and document pairs from HAL for contrastive learning.
 
 - [`preprocess.py`](preprocess.py): Preprocesses the raw data from HAL alongside responses from the API.
 - [`sample_pairs.py`](sample_pairs.py): Samples contrastive pairs from the preprocessed data.
+- [`postprocess.py`](postprocess.py): Postprocesses the sampled pairs to create the final dataset.
 
 ## Requirements
 

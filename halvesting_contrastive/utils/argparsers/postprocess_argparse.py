@@ -16,7 +16,7 @@ class PostprocessArgparse:
             Parsed arguments.
         """
         parser = argparse.ArgumentParser(
-            description="Argument parser used to preprocess HALvest's documents."
+            description="Argument parser used to clean out sentence pairs."
         )
         parser.add_argument(
             "--config_path",
