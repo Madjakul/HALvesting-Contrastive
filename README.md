@@ -1,6 +1,16 @@
 # HALvesting-Contrastive
 
-Mining sentence and document pairs from HAL for contrastive learning.
+Mining sentence pairs from HAL for contrastive learning and stylometric analysis.
+
+[![arXiv](https://img.shields.io/badge/arXiv-2407.20595-b31b1b.svg)](https://arxiv.org/abs/2407.20595)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-Data-yellow)](https://huggingface.co/datasets/Madjakul/HALvest-Contrastive)
+
+See also:
+
+- [HALvesting](https://github.com/Madjakul/HALvesting/)
+- [HALvesting-Geometric](https://github.com/Madjakul/HALvesting-Geometric)
+
+---
 
 ## Features
 
@@ -35,7 +45,7 @@ pip install -r requirements.txt
 
 ## Usage
 
-It's easier to modify the files in [`scripts/`](./scripts/) at need before launching them.
+It's easier to modify the files in [`scripts/`](./scripts/) at need before directly launching them.
 You might need to modify the rights of the scripts to make them executable:
 
 ```bash
@@ -49,8 +59,8 @@ Don't forget to also modify the configuration files in [`configs/`](./configs/) 
 Preprocess the raw data from HAL alongside responses from the API.
 
 ```
-usage: preprocess.py [-h] --config_path CONFIG_PATH [--do_convert_responses] [--responses_dir RESPONSES_DIR]
-                     [--metadata_path METADATA_PATH] [--num_proc NUM_PROC] [--push_to_hub]
+usage: preprocess.py [-h] --config_path CONFIG_PATH [--responses_dir RESPONSES_DIR] [--metadata_path METADATA_PATH]
+                     [--num_proc NUM_PROC]
 
 Argument parser used to preprocess HALvest's documents.
 
@@ -58,14 +68,11 @@ options:
   -h, --help            show this help message and exit
   --config_path CONFIG_PATH
                         Path to the config file.
-  --do_convert_responses
-                        Convert responses to metadata.
   --responses_dir RESPONSES_DIR
                         Path to the responses directory. Only used if do_convert_responses is True.
   --metadata_path METADATA_PATH
                         Path to the metadata file. If do_convert_responses is True, the metadata will be saved here.
   --num_proc NUM_PROC   Number of processes to use. Default is the number of CPUs.
-  --push_to_hub         Push the dataset to the Hub.
 ```
 
 ### Sampling
@@ -73,8 +80,7 @@ options:
 Sample contrastive pairs from the preprocessed data. The pairs can be independent sentences or contiguous ones in order to perform inverse cloze tasks.
 
 ```
-usage: sample_pairs.py [-h] --config_path CONFIG_PATH [--num_proc NUM_PROC]
-                       [--output_dir OUTPUT_DIR] [--cache_dir CACHE_DIR]
+usage: sample_pairs.py [-h] --config_path CONFIG_PATH [--num_proc NUM_PROC] [--cache_dir CACHE_DIR]
 
 Argument parser used to sample sentences, paragraphs or inverse cloze pairs.
 
@@ -83,10 +89,24 @@ options:
   --config_path CONFIG_PATH
                         Path to the config file.
   --num_proc NUM_PROC   Number of processes to use. Default is the number of CPUs.
-  --output_dir OUTPUT_DIR
-                        Path to the output directory.
   --cache_dir CACHE_DIR
                         Path to the cache directory.
+```
+
+### Postprocessing
+
+Postprocess the sampled pairs to create the final dataset.
+
+```
+usage: postprocess.py [-h] --config_path CONFIG_PATH [--num_proc NUM_PROC]
+
+Argument parser used to clean out sentence pairs.
+
+options:
+  -h, --help            show this help message and exit
+  --config_path CONFIG_PATH
+                        Path to the config file.
+  --num_proc NUM_PROC   Number of processes to use. Default is the number of CPUs.
 ```
 
 ## Citation
