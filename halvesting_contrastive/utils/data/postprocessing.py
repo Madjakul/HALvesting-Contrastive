@@ -10,7 +10,7 @@ from langdetect import detect
 
 
 class Postprocessing:
-    """Class used to postprocess the data after sampling."""
+    """Clean up the sentence pairs."""
 
     @classmethod
     def run(cls, example: Dict[str, Any]):
@@ -51,6 +51,18 @@ class Postprocessing:
 
     @staticmethod
     def is_english(text: str):
+        """Check if the text is in English.
+
+        Parameters
+        ----------
+        text: str
+            The text to check.
+
+        Returns
+        -------
+        bool
+            If the text is in English or not.
+        """
         try:
             return detect(text) == "en"
         except:
@@ -58,15 +70,52 @@ class Postprocessing:
 
     @staticmethod
     def has_enough_words(text: str):
+        """Check if the text has more than 6 words.
+
+        Parameters
+        ----------
+        text: str
+            The text to check.
+
+        Returns
+        -------
+        bool
+            If the text has more than 6 words or not.
+        """
         return len(nltk.word_tokenize(text)) > 6
 
     @staticmethod
     def has_too_many_symbols(text: str):
+        """Check if the text has more than 25% symbols.
+
+        Parameters
+        ----------
+        text: str
+            The text to check.
+
+        Returns
+        -------
+        bool
+            If the text has more than 25% symbols or not.
+        """
         symbols = re.findall(r"[^A-zÀ-ú]", text)
         return len(symbols) / len(text) > 0.25
 
     @staticmethod
     def is_repetitive(text: str):
+        """Check if the text is repetitive. This is done by checking the
+        entropy of the unigram distribution.
+
+        Parameters
+        ----------
+        text: str
+            The text to check.
+
+        Returns
+        -------
+        bool
+            If the text is repetitive or not
+        """
         normalized_words = [word.lower() for word in nltk.word_tokenize(text)]
         counter = Counter(normalized_words)
 
