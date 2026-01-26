@@ -1,115 +1,186 @@
 # halvesting_contrastive/core/ict_sampler.py
 
 import random
-from typing import Any, Dict, List
+from collections import defaultdict
+from typing import Dict, List, Tuple
 
-from nltk.tokenize import sent_tokenize
+import nltk
+
+MERGE_TRIGGERS = (
+    "et al.",
+    "e.g.",
+    "i.e.",
+    "vs.",
+    "cf.",
+    "etc.",
+    "approx.",
+    "fig.",
+    "figs.",
+    "tab.",
+    "sec.",
+    "chap.",
+    "dr.",
+    "Mr.",
+    "mrs.",
+    "ms.",
+    "prof.",
+    "p.",
+    "pp.",
+    "vol.",
+    "no.",
+    "a.d.",
+    "b.c.",
+)
+
+
+def tokenize_and_merge_sentences(text: str) -> list[str]:
+    """Tokenizes text into sentences and merges sentences that end with
+    specific abbreviations."""
+    # Initial tokenization using NLTK
+    sentences = nltk.sent_tokenize(text)
+    if not sentences:
+        return []
+
+    merged_sentences = []
+    i = 0
+    while i < len(sentences):
+        current_sentence = sentences[i]
+        # Check if the sentence ends with a trigger and is not the last sentence
+        while i + 1 < len(sentences) and current_sentence.lower().strip().endswith(
+            MERGE_TRIGGERS
+        ):
+            # Merge with the next sentence
+            current_sentence += " " + sentences[i + 1]
+            i += 1
+        merged_sentences.append(current_sentence)
+        i += 1
+
+    return merged_sentences
 
 
 class ICTSampler:
-    """Class used to sample documents and grammatically correct passages from
-    the same document.
+    """Class used to sample documents and create triplets for Inverse Cloze
+    Task (ICT).
 
-    The sampling is done in a batched manner to speed up the process.
-    The sampling is done in the following way: for each document, sample `n`
-    contiguous sentences as the query and `n` contiguous sentences before and
-    after the query as the key. The labels are always 1.
+    For each document, it samples an anchor passage, a positive context, and a
+    hard negative.
+
+    - The positive context is the sentences surrounding the anchor. Following the
+      original paper, 90% of the time the anchor text is removed from this
+      context, and 10% of the time it is kept.
+    - The hard negative is another, non-overlapping passage from the same document.
     """
 
     @classmethod
     def sample_batched(
-        cls, batch: List[Dict[str, Any]], n_pairs: int, n_sentences: int = 1
+        cls, batch: Dict[str, List], n_triplets: int, n_sentences: int = 1
     ):
-        """Sample contiguous sentences from the same document in batch.
+        """Sample triplets from the same document in a batch.
 
         Parameters
         ----------
         batch: List[Dict[str, Any]]
             Batch of documents.
-        n_pairs: int
-            Number of positive pairs to sample.
+        n_triplets: int
+            Number of triplets to sample per document.
         n_sentences: int
-            Number of contiguous sentences to sample for the query. This
-            number is multiplied by 2 to get they keys on the left and
-            right of the query.
+            Number of contiguous sentences to sample for the anchor.
 
         Returns
         -------
         Dict[str, List[Any]]
-            Dictionary containing the query and key texts, years, domains,
-            affiliations, and authors.
+            Dictionary containing the anchor, positive, and negative texts,
+            along with anchor metadata.
         """
-        query_halids = []
-        query_texts = []
-        query_years = []
-        query_domains = []
-        query_affiliations = []
-        query_authors = []
-        key_texts = []
-        domain_labels = []
-        affiliation_labels = []
-        author_labels = []
+        results = defaultdict(list)
 
         for idx in range(len(batch["text"])):  # type: ignore
-            for _ in range(n_pairs):
-                query_text, key_text = cls.sample_sentences(batch["text"][idx], n_sentences)  # type: ignore
-                query_halids.append(batch["halid"][idx])  # type: ignore
-                query_texts.append(query_text)
-                query_years.append(batch["year"][idx])  # type: ignore
-                query_domains.append(batch["domain"][idx])  # type: ignore
-                query_affiliations.append(batch["affiliations"][idx])  # type: ignore
-                query_authors.append(batch["authorids"][idx])  # type: ignore
-                key_texts.append(key_text)
-                domain_labels.append(1)
-                affiliation_labels.append(1)
-                author_labels.append(1)
-        return {
-            "query_halid": query_halids,
-            "query_text": query_texts,
-            "query_year": query_years,
-            "query_authors": query_authors,
-            "query_affiliations": query_affiliations,
-            "query_domains": query_domains,
-            "key_halid": query_halids,
-            "key_text": key_texts,
-            "key_year": query_years,
-            "key_authors": query_authors,
-            "key_affiliations": query_affiliations,
-            "key_domains": query_domains,
-            "domain_label": domain_labels,
-            "affiliation_label": affiliation_labels,
-            "author_label": author_labels,
-        }
+            for _ in range(n_triplets):
+                anchor_text, positive_text, negative_text = cls._sample_triplet(
+                    batch["text"][idx], n_sentences  # type: ignore
+                )
+
+                if not all([anchor_text, positive_text, negative_text]):
+                    continue
+
+                results["halid"].append(batch["halid"][idx])  # type: ignore
+                results["year"].append(batch["year"][idx])  # type: ignore
+                results["domains"].append(batch["domain"][idx])  # type: ignore
+                results["affiliations"].append(batch["affiliations"][idx])  # type: ignore
+                results["authors"].append(batch["authorids"][idx])  # type: ignore
+                results["query"].append(anchor_text)
+                results["positive"].append(positive_text)
+                results["negative"].append(negative_text)
+        return results
 
     @staticmethod
-    def sample_sentences(text: str, n_sentences: int):
-        """Sample `n` sentences from a text. A query consists in `n` contiguous
-        sentences and the key consists in the `n` contiguous sentences before
-        and after the query.
+    def _sample_triplet(text: str, n_sentences: int) -> Tuple[str, str, str]:
+        """Samples an anchor, its context (positive), and a random non-
+        overlapping passage (negative) from the text.
 
         Parameters
         ----------
         text: str
-            Text from which to sample sentences.
+            Text from which to sample.
         n_sentences: int
-            Number of sentences to sample for the query. This number is multiplied
-            by 2 to get they keys on the left and right of the query.
+            Number of sentences for the anchor.
 
         Returns
         -------
-        query: str
-            Query text.
-        key: str
-            Key text.
+        Tuple[str, str, str]
+            A tuple of (anchor, positive, negative) texts. Returns empty strings
+            if sampling is not possible.
         """
-        sentences = sent_tokenize(text)
-        min_required_sentences = 3 * n_sentences
+        sentences = tokenize_and_merge_sentences(text)
+        # The positive context is 2*n sentences, the negative is also 2*n sentences.
+        context_size = 2 * n_sentences
+
+        # Min sentences: 3*n for anchor+context block, plus 2*n for the negative block.
+        min_required_sentences = (3 * n_sentences) + context_size
         if len(sentences) < min_required_sentences:
-            return "", ""
-        query_idx = random.randint(n_sentences, len(sentences) - 2 * n_sentences)
-        query = " ".join(sentences[query_idx : query_idx + n_sentences])
-        key = " ".join(
-            sentences[query_idx - n_sentences : query_idx]
-            + sentences[query_idx + n_sentences : query_idx + 2 * n_sentences]
-        )
-        return query, key
+            return "", "", ""
+
+        # 1. Sample anchor and define context boundaries
+        query_start_range = n_sentences
+        query_end_range = len(sentences) - context_size
+        if query_start_range >= query_end_range:
+            return "", "", ""
+        query_idx = random.randint(query_start_range, query_end_range)
+
+        anchor = " ".join(sentences[query_idx : query_idx + n_sentences])
+
+        # 2. Probabilistically define the positive context (90/10 split)
+        if random.random() < 0.1:
+            # 10% OF THE TIME: Positive context INCLUDES the anchor (vocabulary matching)
+            # The key is the whole original block of 3*n_sentences.
+            positive_sentences = sentences[
+                query_idx - n_sentences : query_idx + context_size
+            ]
+        else:
+            # 90% OF THE TIME: Positive context EXCLUDES the anchor (true ICT)
+            # The key is the surrounding context only.
+            positive_sentences = (
+                sentences[query_idx - n_sentences : query_idx]
+                + sentences[query_idx + n_sentences : query_idx + context_size]
+            )
+        positive = " ".join(positive_sentences)
+
+        # 3. Sample a non-overlapping hard negative passage
+        forbidden_start = query_idx - n_sentences
+        forbidden_end = query_idx + context_size
+
+        possible_neg_starts = []
+        # Add possible start indices for a negative block before the forbidden zone
+        for i in range(forbidden_start - context_size + 1):
+            possible_neg_starts.append(i)
+        # Add possible start indices for a negative block after the forbidden zone
+        for i in range(forbidden_end, len(sentences) - context_size + 1):
+            possible_neg_starts.append(i)
+
+        if not possible_neg_starts:
+            return "", "", ""
+
+        neg_idx = random.choice(possible_neg_starts)
+        negative = " ".join(sentences[neg_idx : neg_idx + context_size])
+
+        return anchor, positive, negative

@@ -163,6 +163,9 @@ cython_debug/
 
 data/responses/
 logs/
+output/
+wandb/
 tmp/
 data/metadata.json
 .Trash*/
+halvest-contrastive/

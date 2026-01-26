@@ -8,6 +8,7 @@ import os.path as osp
 import datasets
 import psutil
 
+from halvesting_contrastive.core import ContrastiveSampler, ICTSampler
 from halvesting_contrastive.utils import helpers, logging_config
 from halvesting_contrastive.utils.argparsers import PreprocessArgparse
 from halvesting_contrastive.utils.data import Preprocessing
@@ -52,10 +53,14 @@ if __name__ == "__main__":
         lambda batch: Preprocessing.batched_filter_domains(batch),
         batched=True,
         batch_size=config["map"]["batch_size"],
-        num_proc=args.num_proc if args.num_proc else NUM_PROC,  # type: ignore
-        load_from_cache_file=config["map"]["load_from_cache_file"],  # type: ignore
+        num_proc=args.num_proc if args.num_proc else NUM_PROC,
+        load_from_cache_file=config["map"]["load_from_cache_file"],
     )
-    ds = ds.filter(lambda document: len(document["domain"]) > 0)
+    ds = ds.filter(
+        lambda document: len(document["domain"]) > 0,
+        num_proc=args.num_proc if args.num_proc else NUM_PROC,
+    )
+
     logging.info("Getting the size of the documents.")
     size = ds.map(
         lambda batch: Preprocessing.batched_getsizeof(batch),
@@ -64,7 +69,8 @@ if __name__ == "__main__":
         num_proc=args.num_proc if args.num_proc else NUM_PROC,
         load_from_cache_file=config["map"]["load_from_cache_file"],
     )
-    ds = ds.add_column("size", size["size"])  # type: ignore
+    ds = ds.add_column("size", size["size"])
+
     logging.info("Getting the authors and affiliations.")
     authors = ds.map(
         lambda batch: Preprocessing.batched_get_authors(batch),
@@ -77,17 +83,77 @@ if __name__ == "__main__":
     ds = ds.add_column("affiliations", authors["affiliations"])
 
     logging.info("Filtering out documents with no authors...")
-    ds = ds.filter(lambda document: len(document["authorids"]) > 0)
+    ds = ds.filter(
+        lambda document: len(document["authorids"]) > 0,
+        num_proc=args.num_proc if args.num_proc else NUM_PROC,
+    )
     logging.info("Filtering out documents with no affiliations...")
-    ds = ds.filter(lambda document: len(document["affiliations"]) > 0)
+    ds = ds.filter(
+        lambda document: len(document["affiliations"]) > 0,
+        num_proc=args.num_proc if args.num_proc else NUM_PROC,
+    )
     logging.info("Filtering out documents with unknown domains...")
     ds = ds.filter(
         lambda document: set(document["domain"]).issubset(
             set(Preprocessing.domain_list)
-        )
+        ),
+        num_proc=args.num_proc if args.num_proc else NUM_PROC,
     )
     logging.info("Filtering documents with no references...")
-    ds = ds.filter(lambda document: "[START_REF]" in document["text"])
+    ds = ds.filter(
+        lambda document: "[START_REF]" in document["text"],
+        num_proc=args.num_proc if args.num_proc else NUM_PROC,
+    )
 
-    if config["main"]["do_push_to_hub"]:
-        ds.push_to_hub(config["main"]["checkpoint"], private=True)
+    if config["main"]["config"] == "base":
+        logging.info("Initializing the ContrastiveSampler.")
+        ContrastiveSampler.init_cache(ds)  # type: ignore
+
+        logging.info("Sampling contrastive pairs...")
+        augmented_ds = ds.map(
+            ContrastiveSampler.generate_triplet_candidates,
+            batched=True,
+            batch_size=config["map"]["batch_size"],
+            with_indices=True,
+            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,  # type: ignore
+            remove_columns=ds.column_names,  # type: ignore
+            fn_kwargs={
+                "n_triplets": config["sampler"]["n_triplets"],
+                "n_sentences": config["sampler"]["n_sentences"],
+                "ds": ds,
+                "all_ids": range(len(ds)),  # type: ignore
+            },
+            load_from_cache_file=config["map"]["load_from_cache_file"],  # type: ignore
+        )
+
+        if config["main"]["do_push_to_hub"]:
+            logging.info("Pushing to the hub...")
+            augmented_ds.push_to_hub(  # type: ignore
+                config["main"]["checkpoint"],
+                config_name=f"base-{config['sampler']['n_sentences']}",
+                revision="topic",
+            )
+        logging.info(f"Successfully generated {len(ds)} triplets.")
+    elif config["main"]["config"] == "ict":
+        logging.info("Sampling ICT pairs...")
+        augmented_ds = ds.map(
+            ICTSampler.sample_batched,
+            batched=True,
+            batch_size=config["map"]["batch_size"],
+            num_proc=args.num_proc if args.num_proc is not None else NUM_PROC,  # type: ignore
+            remove_columns=ds.column_names,  # type: ignore
+            fn_kwargs={
+                "n_triplets": config["sampler"]["n_triplets"],
+                "n_sentences": config["sampler"]["n_sentences"],
+            },
+            load_from_cache_file=config["map"]["load_from_cache_file"],  # type: ignore
+        )
+        logging.info(f"Successfully generated {len(ds)} ICT triplets.")
+
+        if config["main"]["do_push_to_hub"]:
+            logging.info("Pushing to the hub...")
+            augmented_ds.push_to_hub(  # type: ignore
+                config["main"]["checkpoint"],
+                config_name=f"ict-{config['sampler']['n_sentences']}",
+                revision="topic",
+            )

@@ -1,12 +1,19 @@
+# configs/preprocess.yml
+
 main:
+  config: "base"
   do_convert_responses: False
-  checkpoint: Madjakul/HALvest-Contrastive-Raw
+  checkpoint: Madjakul/HALvest-Contrastive-R
   do_push_to_hub: True
 
 ds:
-  checkpoint: Madjakul/HALvest-Geometric
+  checkpoint: almanach/HALvest-Geometric
   config: en
 
 map:
   batch_size: 1000
   load_from_cache_file: False
+
+sampler:
+  n_sentences: 10
+  n_triplets: 10

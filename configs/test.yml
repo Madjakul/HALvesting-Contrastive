@@ -1,0 +1,25 @@
+# test.py
+
+mode: "test"
+project_name: "halvest-contrastive"
+group_name: "base"
+
+data:
+  batch_size: 64
+  tokenizer_name: "FacebookAI/roberta-base"
+  max_length: 512
+  map_batch_size: 1000
+  load_from_cache_file: false
+  shuffle: false # Set to false to get "curriculum learning" on unified data
+
+model:
+  base_model_name: "FacebookAI/roberta-base"
+
+test:
+  subset: "base-8"
+  # --- trainer ---
+  device: "gpu"
+  num_devices: 1
+  process_group_backend: "gloo"
+  # --- wandb ---
+  use_wandb: true

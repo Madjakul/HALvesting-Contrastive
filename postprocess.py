@@ -23,7 +23,10 @@ if __name__ == "__main__":
 
     logging.info(f"Loading dataset from {config['ds']['checkpoint']}.")
     ds = datasets.load_dataset(
-        config["ds"]["checkpoint"], config["ds"]["config"], split="train"
+        config["ds"]["checkpoint"],
+        config["ds"]["config"],
+        split="train",
+        revision="topic",
     )
 
     logging.info("Filtering documents...")
@@ -33,10 +36,11 @@ if __name__ == "__main__":
         load_from_cache_file=config["filter"]["load_from_cache_file"],
     )
 
+    logging.info("Splitting the dataset...")
+    train_testvalid = ds.train_test_split(test_size=0.02)
+    test_valid = train_testvalid["test"].train_test_split(test_size=0.5)
+
     if config["main"]["do_push_to_hub"]:
-        logging.info("Splitting the dataset...")
-        train_testvalid = ds.train_test_split(test_size=0.2)
-        test_valid = train_testvalid["test"].train_test_split(test_size=0.5)
         logging.info("Pushing to the hub...")
         train_testvalid["train"].push_to_hub(
             config["main"]["checkpoint"],

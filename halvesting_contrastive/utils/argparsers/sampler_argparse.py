@@ -37,5 +37,11 @@ class SamplerArgparse:
             default=None,
             help="Path to the cache directory.",
         )
+        parser.add_argument(
+            "--artifact_dir",
+            type=str,
+            default="artifacts",
+            help="Directory to store/load the TF-IDF index.",
+        )
         args, _ = parser.parse_known_args()
         return args

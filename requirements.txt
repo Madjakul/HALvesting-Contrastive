@@ -1,10 +1,20 @@
+accelerate==1.10.1
 datasets==3.0.1
 huggingface-hub==0.26.0
-langdetect==1.0.9
+jaxtyping==0.3.3
+lightning==2.5.5
+matplotlib==3.10.6
+mteb==2.0.4
 nltk==3.9.1
 numpy==2.1.2
 psutil==6.1.0
+PyQt6==6.9.1
 PyYAML==6.0.2
+scikit-learn==1.7.2
+sentence-transformers==4.0.2
+sentencepiece==0.2.1
 torch --index-url https://download.pytorch.org/whl/cu121
+torcheval==0.0.7
 tqdm==4.66.5
+transformers==4.50.3
 wandb==0.18.3

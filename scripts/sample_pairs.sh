@@ -11,7 +11,7 @@ CONFIG_PATH=$PROJECT_ROOT/configs/sample_pairs.yml
 
 # CACHE_DIR=~/.cache
 #
-# NUM_PROC=4
+NUM_PROC=16
 #
 
 # **************************************************************************************

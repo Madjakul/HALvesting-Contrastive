@@ -1,243 +1,228 @@
-# halvesting_contrastive/core/contrastive_sampler.py
+# halvesting_contrastive/utils/data/sampler.py
 
 import logging
 import random
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Dict, List, Set
 
 import datasets
-from nltk.tokenize import sent_tokenize
+import nltk
+from tqdm import tqdm
+
+# Ensure the sentence tokenizer is available
+try:
+    nltk.data.find("tokenizers/punkt")
+except nltk.downloader.DownloadError:
+    nltk.download("punkt")
+
+
+MERGE_TRIGGERS = (
+    "et al.",
+    "e.g.",
+    "i.e.",
+    "vs.",
+    "cf.",
+    "etc.",
+    "approx.",
+    "fig.",
+    "figs.",
+    "tab.",
+    "sec.",
+    "chap.",
+    "dr.",
+    "Mr.",
+    "mrs.",
+    "ms.",
+    "prof.",
+    "p.",
+    "pp.",
+    "vol.",
+    "no.",
+    "a.d.",
+    "b.c.",
+)
+
+
+def tokenize_and_merge_sentences(text: str) -> list[str]:
+    """Tokenizes text into sentences and merges sentences that end with
+    specific abbreviations."""
+    # Initial tokenization using NLTK
+    sentences = nltk.sent_tokenize(text)
+    if not sentences:
+        return []
+
+    merged_sentences = []
+    i = 0
+    while i < len(sentences):
+        current_sentence = sentences[i]
+        # Check if the sentence ends with a trigger and is not the last sentence
+        while i + 1 < len(sentences) and current_sentence.lower().strip().endswith(
+            MERGE_TRIGGERS
+        ):
+            # Merge with the next sentence
+            current_sentence += " " + sentences[i + 1]
+            i += 1
+        merged_sentences.append(current_sentence)
+        i += 1
+
+    return merged_sentences
 
 
 class ContrastiveSampler:
-    """Class used to sample documents and keys for contrastive learning. The
-    sampling is done in a batched manner to speed up the process. The sampling.
 
-    is done in the following way: for each document, sample `n` positive pairs
-    and `n` negative pairs. The positive pairs are documents written by the
-    same author(s) and the negative pairs are documents written by different
-    authors. The negative pairs are sampled from the whole dataset.
-
-    Attributes
-    ----------
-    _auth_to_idx: Dict[str, List[int]]
-        Dictionary mapping authors to their indices in the dataset.
-    """
-
-    _auth_to_idx: Dict[str, List[int]] = None  # type: ignore
-
-    @classmethod
-    def _build_auth_to_idx_map(cls, ds: datasets.Dataset):
-        auth_to_idx = defaultdict(list)
-        for idx, auths in enumerate(ds["authorids"]):
-            for auth in auths:
-                auth_to_idx[auth].append(idx)
-        return auth_to_idx
+    auth_to_idx: Dict[Set, List[int]]
+    auth_to_idx_soft: Dict[str, List[int]]
+    domain_to_idx: Dict[Set, List[int]]
 
     @classmethod
     def init_cache(cls, ds: datasets.Dataset):
-        """Initialize the cached author-to-indices map once.
-
-        Parameters
-        ----------
-        ds: datasets.Dataset
-            The whole dataset in read-only mode.
-
-        Returns
-        -------
-        bool
-            Always True after completion.
-        """
-        if cls._auth_to_idx is None:
-            logging.info("Building author-to-indices map...")
-            cls._auth_to_idx = cls._build_auth_to_idx_map(ds)
-        logging.info("Author-to-indices map built.")
-        return True
+        logging.info("Building author to indices map...")
+        cls.auth_to_idx = cls._auth_to_idx(ds)
+        logging.info("Building author to indices map (soft)...")
+        cls.auth_to_idx_soft = cls._auth_to_idx_soft(ds)
+        logging.info("Building domain to indices map...")
+        cls.domain_to_idx = cls._domain_to_idx(ds)
 
     @classmethod
-    def sample_batched(
+    def generate_triplet_candidates(
         cls,
-        batch: List[Dict[str, Any]],
+        batch: Dict[str, List],
         ids: List[int],
-        soft_positives: bool,
-        n_pairs: int,
-        n_sentences: int,
         ds: datasets.Dataset,
+        n_triplets: int,
+        n_sentences: int,
         all_ids: List[int],
     ):
-        """Batched function to create `n` positive pairs and `n` negative pairs
-        per documents for a total of `2 * n * len(ds)` pairs.
-
-        Parameters
-        ----------
-        batch: List[Dict[str, Any]]
-            Batch of documents.
-        ids: List[int]
-            List of indices of the documents.
-        soft_positives: bool
-            Whether to sample soft positives or not. Soft positives are documents
-            written by one of the co-authors and nnot just the first author.
-        n_pairs: int
-            Number of positive pairs to sample per document.
-        n_sentences: int
-            Number of sentences to sample per document.
-        ds: datasets.Dataset
-            The whole dataset in read-only mode.
-        all_ids: List[int]
-            List of all indices in the dataset.
-
-        Returns
-        -------
-        Dict[str, List[Any]]
-            Dictionary containing the query and key pairs.
-        """
+        all_pool = set(all_ids)
         query_halids = []
         query_texts = []
         query_years = []
         query_domains = []
         query_affiliations = []
-        query_authors = []
-        key_halids = []
-        key_texts = []
-        key_years = []
-        key_domains = []
-        key_affiliations = []
-        key_authors = []
-        domain_labels = []
-        affiliation_labels = []
-        author_labels = []
+        query_authorids = []
+        pos_halids = []
+        pos_texts = []
+        pos_years = []
+        pos_domains = []
+        pos_affiliations = []
+        pos_authorids = []
+        neg_halids = []
+        neg_texts = []
+        neg_years = []
+        neg_domains = []
+        neg_affiliations = []
+        neg_authorids = []
 
-        for idx in range(len(batch["text"])):  # type: ignore
-            local_idx = ids[idx]
-
-            same_auth_ids = set()
-            if soft_positives:
-                local_auths = set(batch["authorids"][idx])  # type: ignore
-                for auth in local_auths:
-                    same_auth_ids.update(cls._auth_to_idx[auth])
-                diff_auth_ids = set(all_ids) - same_auth_ids - {local_idx}
-            else:
-                local_auths = batch["authorids"][idx]  # type: ignore
-                same_auth_ids.update(cls._auth_to_idx[local_auths[0]])
-                for idx_ in list(same_auth_ids):
-                    if ds[idx_]["authorids"][0] != local_auths[0]:
-                        same_auth_ids.discard(idx_)
-                common_auths = set()
-                for auth in local_auths:
-                    common_auths.update(cls._auth_to_idx[auth])
-                diff_auth_ids = (
-                    set(all_ids) - same_auth_ids - common_auths - {local_idx}
-                )
-
-            same_auth_ids.discard(local_idx)
-
-            # Sample positive pairs
-            for _ in range(n_pairs):
-                query_text = cls.sample_sentences(batch["text"][idx], n_sentences)  # type: ignore
-                key_idx = (
-                    random.choice(list(same_auth_ids)) if same_auth_ids else local_idx
-                )
-                key = ds[key_idx]
-                key_text = cls.sample_sentences(key["text"], n_sentences)
-
-                # Append positive pair
-                query_halids.append(batch["halid"][idx])  # type: ignore
-                query_texts.append(query_text)
-                query_years.append(batch["year"][idx])  # type: ignore
-                query_domains.append(batch["domain"][idx])  # type: ignore
-                query_affiliations.append(batch["affiliations"][idx])  # type: ignore
-                query_authors.append(batch["authorids"][idx])  # type: ignore
-                key_halids.append(key["halid"])
-                key_texts.append(key_text)
-                key_years.append(key["year"])
-                key_domains.append(key["domain"])
-                key_affiliations.append(key["affiliations"])
-                key_authors.append(key["authorids"])
-                domain_labels.append(
-                    1 if set(batch["domain"][idx]) & set(key["domain"]) else 0  # type: ignore
-                )
-                affiliation_labels.append(
-                    1
-                    if set(batch["affiliations"][idx]) & set(key["affiliations"])  # type: ignore
-                    else 0
-                )
-                author_labels.append(
-                    1 if set(batch["authorids"][idx]) & set(key["authorids"]) else 0  # type: ignore
-                )
-
-            # Sample negative pairs
-            for _ in range(n_pairs):
-                query_text = cls.sample_sentences(batch["text"][idx], n_sentences)  # type: ignore
-                key_idx = random.choice(list(diff_auth_ids))
-                key = ds[key_idx]
-                key_text = cls.sample_sentences(key["text"], n_sentences)
-
-                # Append negative pair
-                query_halids.append(batch["halid"][idx])  # type: ignore
-                query_texts.append(query_text)
-                query_years.append(batch["year"][idx])  # type: ignore
-                query_domains.append(batch["domain"][idx])  # type: ignore
-                query_affiliations.append(batch["affiliations"][idx])  # type: ignore
-                query_authors.append(batch["authorids"][idx])  # type: ignore
-                key_halids.append(key["halid"])
-                key_texts.append(key_text)
-                key_years.append(key["year"])
-                key_domains.append(key["domain"])
-                key_affiliations.append(key["affiliations"])
-                key_authors.append(key["authorids"])
-                domain_labels.append(
-                    1 if set(batch["domain"][idx]) & set(key["domain"]) else 0  # type: ignore
-                )
-                affiliation_labels.append(
-                    1
-                    if set(batch["affiliations"][idx]) & set(key["affiliations"])  # type: ignore
-                    else 0
-                )
-                author_labels.append(
-                    1 if set(batch["authorids"][idx]) & set(key["authorids"]) else 0  # type: ignore
-                )
-
+        for idx, query in enumerate(tqdm(batch["text"])):
+            global_idx = ids[idx]
+            neg_pool = cls.get_neg_pool(
+                batch["authorids"][idx], batch["domain"][idx], all_pool
+            )
+            if len(neg_pool) == 0:
+                continue
+            pos_pool = cls.get_pos_pool(batch["authorids"][idx], global_idx)
+            if len(pos_pool) == 0:
+                continue
+            pos_idx, neg_idx = cls.sample_triplets(pos_pool, neg_pool, n_triplets)
+            for p_idx, n_idx in zip(pos_idx, neg_idx):
+                for i in range(n_triplets):
+                    query_halids.append(batch["halid"][idx])
+                    query_texts.append(cls._get_random_span(query, n_sentences))
+                    query_years.append(batch["year"][idx])
+                    query_domains.append(batch["domain"][idx])
+                    query_affiliations.append(batch["affiliations"][idx])
+                    query_authorids.append(batch["authorids"][idx])
+                    pos_halids.append(ds[p_idx]["halid"])
+                    pos_texts.append(
+                        cls._get_random_span(ds[p_idx]["text"], n_sentences)
+                    )
+                    pos_years.append(ds[p_idx]["year"])
+                    pos_domains.append(ds[p_idx]["domain"])
+                    pos_affiliations.append(ds[p_idx]["affiliations"])
+                    pos_authorids.append(ds[p_idx]["authorids"])
+                    neg_halids.append(ds[n_idx[i]]["halid"])
+                    neg_texts.append(
+                        cls._get_random_span(ds[n_idx[i]]["text"], n_sentences)
+                    )
+                    neg_years.append(ds[n_idx[i]]["year"])
+                    neg_domains.append(ds[n_idx[i]]["domain"])
+                    neg_affiliations.append(ds[n_idx[i]]["affiliations"])
+                    neg_authorids.append(ds[n_idx[i]]["authorids"])
         return {
             "query_halid": query_halids,
-            "query_text": query_texts,
+            "query": query_texts,
             "query_year": query_years,
-            "query_authors": query_authors,
+            "query_domain": query_domains,
             "query_affiliations": query_affiliations,
-            "query_domains": query_domains,
-            "key_halid": key_halids,
-            "key_text": key_texts,
-            "key_year": key_years,
-            "key_authors": key_authors,
-            "key_affiliations": key_affiliations,
-            "key_domains": key_domains,
-            "domain_label": domain_labels,
-            "affiliation_label": affiliation_labels,
-            "author_label": author_labels,
+            "query_authorids": query_authorids,
+            "pos_halid": pos_halids,
+            "positive": pos_texts,
+            "pos_year": pos_years,
+            "pos_domain": pos_domains,
+            "pos_affiliations": pos_affiliations,
+            "pos_authorids": pos_authorids,
+            "neg_halids": neg_halids,
+            "negative": neg_texts,
+            "neg_year": neg_years,
+            "neg_domain": neg_domains,
+            "neg_affiliations": neg_affiliations,
+            "neg_authorids": neg_authorids,
         }
 
+    @classmethod
+    def get_pos_pool(cls, auths: List[str], global_idx: int):
+        pos_pool = set(cls.auth_to_idx[frozenset(set(auths))])
+        pos_pool -= {global_idx}  # ensure not the same document
+        # pos_pool |= {global_idx} # test without the same document
+        return list(pos_pool)
+
+    @classmethod
+    def get_neg_pool(cls, auths: List[str], domains: List[str], all_pool: Set[int]):
+        soft_pos_pool = set()
+        for auth in auths:
+            soft_pos_pool |= set(cls.auth_to_idx_soft[auth])
+        neg_pool = all_pool - soft_pos_pool
+        neg_pool &= set(cls.domain_to_idx.get(frozenset(set(domains)), []))
+        return list(neg_pool)
+
     @staticmethod
-    def sample_sentences(text: str, n_sentences: int):
-        """Sample `n` sentences from a document.
+    def sample_triplets(pos_pool: List[int], neg_pool: List[int], n_triplets: int):
+        pos_idx = random.choices(pos_pool, k=n_triplets)
+        neg_idx = random.choices(neg_pool, k=(n_triplets * n_triplets))
+        neg_idx = [
+            neg_idx[i : i + n_triplets] for i in range(0, len(neg_idx), n_triplets)
+        ]
+        return pos_idx, neg_idx
 
-        Parameters
-        ----------
-        text: str
-            Document text.
-        n_sentences: int
-            Number of sentences to sample.
+    @staticmethod
+    def _auth_to_idx(ds: datasets.Dataset):
+        d = defaultdict(list)
+        for idx, auths in enumerate(tqdm(ds["authorids"])):
+            d[frozenset(set(auths))].append(idx)
+        return d
 
-        Returns
-        -------
-        sentence: str
-            Sampled sentence(s).
-        """
-        sentences = sent_tokenize(text)
-        min_requirements = 2 * n_sentences
-        if len(sentences) < min_requirements:
+    @staticmethod
+    def _auth_to_idx_soft(ds: datasets.Dataset):
+        d = defaultdict(list)
+        for idx, auths in enumerate(tqdm(ds["authorids"])):
+            for auth in auths:
+                d[auth].append(idx)
+        return d
+
+    @staticmethod
+    def _domain_to_idx(ds: datasets.Dataset):
+        d = defaultdict(list)
+        for idx, domains in enumerate(tqdm(ds["domain"])):
+            d[frozenset(set(domains))].append(idx)
+        return d
+
+    @staticmethod
+    def _get_random_span(text: str, n_sentences: int) -> str:
+        sentences = tokenize_and_merge_sentences(text)
+        if len(sentences) <= n_sentences:
             return text
-        sentence_idx = random.randint(0, len(sentences))
-        while sentence_idx > len(sentences) - n_sentences:
-            sentence_idx = random.randint(0, len(sentences))
-        sentence = " ".join(sentences[sentence_idx : sentence_idx + n_sentences])
 
-        return sentence
+        # Directly calculate the valid range for the starting index and select one.
+        # This avoids errors and inefficient rejection sampling.
+        start_index = random.randint(0, len(sentences) - n_sentences)
+        return " ".join(sentences[start_index : start_index + n_sentences])
