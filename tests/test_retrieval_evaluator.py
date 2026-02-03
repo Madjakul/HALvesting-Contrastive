@@ -12,6 +12,9 @@ def test_retrieval_evaluator_imports():
     assert evaluator is not None
     assert hasattr(evaluator, 'val_outputs')
     assert hasattr(evaluator, 'test_outputs')
+    # Verify they are initialized as empty lists
+    assert evaluator.val_outputs == []
+    assert evaluator.test_outputs == []
     assert hasattr(evaluator, 'val_ndcg_at_10')
     assert hasattr(evaluator, 'val_recall_at_10')
     assert hasattr(evaluator, 'val_mrr_at_100')
@@ -76,9 +79,19 @@ def test_train_utils_has_evaluator_callback():
     """Test that train_utils registers RetrievalEvaluator callback."""
     from halvesting_contrastive.utils import train_utils
     from halvesting_contrastive.callbacks import RetrievalEvaluator
+    from halvesting_contrastive.utils.configs import BaseConfig
     
     # Check that RetrievalEvaluator is imported in train_utils
     assert hasattr(train_utils, 'RetrievalEvaluator')
     
     # Verify it's the same class
     assert train_utils.RetrievalEvaluator is RetrievalEvaluator
+    
+    # Verify that setup_trainer actually registers the callback
+    cfg = BaseConfig(mode="train")
+    trainer = train_utils.setup_trainer(cfg=cfg, logs_dir="/tmp/logs")
+    
+    # Check that RetrievalEvaluator is in the callbacks list
+    callback_types = [type(cb).__name__ for cb in trainer.callbacks]
+    assert 'RetrievalEvaluator' in callback_types, \
+        f"RetrievalEvaluator not found in trainer callbacks: {callback_types}"

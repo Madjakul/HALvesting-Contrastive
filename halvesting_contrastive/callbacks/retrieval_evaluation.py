@@ -222,6 +222,10 @@ class RetrievalEvaluator(L.Callback):
         if trainer.world_size == 1:
             return tensor
 
+        # Check if distributed is initialized before using all_gather
+        if not torch.distributed.is_initialized():
+            return tensor
+
         # all_gather adds a dimension at the start:
         # [num_gpus, local_batch_size, ...]
         gathered_list = [torch.zeros_like(tensor) for _ in range(trainer.world_size)]
