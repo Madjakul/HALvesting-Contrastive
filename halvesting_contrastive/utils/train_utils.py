@@ -8,6 +8,7 @@ from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger, WandbLogger
 from lightning.pytorch.strategies import DDPStrategy
 
+from halvesting_contrastive.callbacks import RetrievalEvaluator
 from halvesting_contrastive.utils.configs.base_config import BaseConfig
 from halvesting_contrastive.utils.data.halvest_contrastive_datamodule import (
     HALvestContrastiveDatamodule,
@@ -43,6 +44,10 @@ def setup_trainer(
 
     lr_monitor = LearningRateMonitor(logging_interval="step")
     callbacks.append(lr_monitor)
+
+    # Add RetrievalEvaluator callback
+    retrieval_evaluator = RetrievalEvaluator()
+    callbacks.append(retrieval_evaluator)
 
     # Model checkpoint callback if checkpoint_dir is provided
     if checkpoint_dir is not None:
